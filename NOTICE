@@ -1,0 +1,16 @@
+Apache Fly Operating System (FOS)
+Copyright 2024 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+The Initial Developer of the GNU C Library of integer types, common definitions and string handling <stdint.h>, <stddef.h>, <string.h>
+is Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.
+
+
+The Initial Developer of the STM Library of fatfs applications "fatfs.h"
+is STMicroelectronics, 2023. All rights reserved.
+
+
+The Initial Developer of the file system driver FatFs is ChaN, 2017, all rights reserved.
