@@ -33,6 +33,20 @@ FATFS fatfs[FOS_MAX_FS_DEV];
 static fmount_state_t fmount_states[FOS_MAX_FS_DEV];    // состояния устройств
 
 
+// обработка состояния устройства
+static void Private_File_MountProc(uint8_t dev);
+
+// смотнитровать файловую систему
+static file_err_t Private_Mount(uint8_t dev_num);
+
+// размонтировать файловую систему
+static file_err_t Private_Unmount(uint8_t dev_num);
+
+// уступить другому процессу
+// реализация через системный вызов
+__weak fos_ret_t SYS_FOS_Sleep(uint32_t time);
+
+
 // смотнитровать файловую систему
 void File_Mount(uint8_t dev_num)
 {
@@ -197,7 +211,7 @@ file_err_t Private_FWriter_Write(fsys_t* fsys, uint8_t* data, uint32_t data_len)
 
 	uint32_t fwriten;
 
-	fsys->fres = f_write(&fsys->file, data, data_len, &fwriten);
+	fsys->fres = f_write(&fsys->file, data, data_len, (UINT*)&fwriten);
 	if(fsys->fres != FR_OK)
 		return FILE_ERR__WRITE;
 

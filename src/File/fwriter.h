@@ -86,16 +86,6 @@ file_state_t API_FWriter_GetFileState(fwriter_t *p);
 
 
 
-// смена режима работы
-static fos_ret_t FWriter_SetMode(fwriter_t *p, file_mode_t mode);
-
-// ожидание состояния
-static fos_ret_t FWriter_WaitingState(fwriter_t *p, file_state_t state, uint32_t timeout_ms);
-
-// установить путь
-static fos_ret_t FWriter_SetPath(fwriter_t *p, fsys_path_t *path);
-
-
 
 #endif /* APPLICATION_FOS_FILE_FWRITER_H_ */
 

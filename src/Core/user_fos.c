@@ -30,10 +30,43 @@ fos_t fos;                                               // ОС
 
 extern uint32_t core_stack[FOS_CORE_STACK_SIZE / 4];     // стек ядра
 
+
+
+// основной цикл потока бездействия системы
+static void Iddle_Main_thr();
+
+// поток обработки файловой системы
+static void FProc_Main_thr();
+
+// создать объект потока
+static fos_thread_t* Private_USER_FOS_CreateThreadObj();
+
+// создать объект семафора
+static fos_semaphore_binary_t* Private_USER_FOS_CreateSemBinaryObj();
+
+// создать объект записи
+static fwriter_t* Private_USER_FOS_CreateFWriterObj();
+
+// инициализация потока
+static void USER_FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init);
+
+// регистрация потока
+static fos_ret_t USER_FOS_ThreadReg(fos_thread_t *thr);
+
+// инициализация и регистрация семафора
+static fos_ret_t USER_FOS_SemBinaryInitAndReg(fos_semaphore_binary_t *semb, fos_semb_state_t init_state);
+
+// инициализация и регистрация объекта записи
+static fos_ret_t USER_FOS_FWriterInitAndReg(fwriter_t *fw, file_init_t *init);
+
+// бработчик callback ошибки стека
+static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
+
+
+
 // инициализация ОС
 void USER_FOS_Init()
 {
-	fos_thread_init_t init_thr = {0};
 	user_desc_t       thr;
 
 	FOS_Init(&fos);

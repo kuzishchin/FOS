@@ -25,6 +25,7 @@
 
 
 #include <stdint.h>
+#include "Platform/compiler_macros.h"
 
 
 /*

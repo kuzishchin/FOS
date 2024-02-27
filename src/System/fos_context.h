@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_context.h
  * @brief     Low level functional for context switch. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      27.02.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -38,12 +38,6 @@ void FOS_Core_GoToUserMode();
 
 // обработчик прерывания PendSV
 void PendSV_Handler();
-
-// сохранить конектс
-static void FOS_Core_SaveContext();
-
-// восстановить контекст
-static void FOS_Core_LoadContext();
 
 
 #endif /* APPLICATION_FOS_SYSTEM_CONTEXT_H_ */

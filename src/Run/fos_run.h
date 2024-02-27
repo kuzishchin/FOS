@@ -54,11 +54,6 @@ void RUN_FOS_MainLoopProc();
  */
 void RUN_FOS_TimHandler();
 
-/*
- * Прототип функции пользовательской инициплизации
- * Для использования переопределить в удобном месте
- */
-__weak void USER_FOS_InitAndRun();
 
 
 

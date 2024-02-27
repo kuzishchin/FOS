@@ -68,7 +68,7 @@ typedef struct
 	char name[FOS_THR_NAME_LEN];  // имя потока
 	user_desc_t user_desc;        // пользовательский дескриптор потока
 
-	fos_thread_сset_t cset;  // константные настройки
+	fos_thread_cset_t cset;  // константные настройки
 	fos_thread_set_t  set;   // настройки
 	fos_thread_var_t  var;   // переменные
 	fos_thread_dbg_t  dbg;   // отладка
@@ -112,47 +112,6 @@ void FOS_AllThreadProcState(volatile fos_thread_ptr *thr_desc_list, uint8_t thr_
 // обработать отладку потока
 void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc);
 
-
-
-// прототип функции завершения потока
-// реализация через системный вызов
-__weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
-
-// прототип перехватчика ошибок
-// реализация через системный вызов
-__weak void SYS_FOS_ErrorSet(fos_err_t *err);
-
-
-
-// получить адрес максимальной отметки заполнения стека
-static uint32_t FOS_ThreadGetAdrStackWatermark(uint32_t low_sp, uint32_t high_sp);
-
-// обработать сосояние потока
-static void FOS_ThreadProcState(fos_thread_t *p);
-
-// добавить данные в стек потока
-static void FOS_ThreadPushStack(fos_thread_t *p, uint32_t val);
-
-// удалить данные из стека потока
-//static void FOS_ThreadPopStack(fos_thread_t *p);
-
-// инициализация стека потока
-static void FOS_ThreadStackInit(fos_thread_t *p);
-
-// функция ловушка для избежания выхода за пределы основного цикла потока
-static void Private_FOS_InfLoop();
-
-// установить флаг блокировки потока
-static void FOS_ThreadSetLockFlag(fos_thread_t *p, uint32_t lock);
-
-// сбросить флаг блокировки
-static void FOS_ThreadReleaseLockFlag(fos_thread_t *p, uint32_t lock);
-
-// вызов callback ошибки стека
-static void FOS_Call_StackErrorCallback(fos_thread_dbg_t *p, user_desc_t user_desc);
-
-// бработчик callback ошибки стека
-static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
 
 
 

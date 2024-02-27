@@ -3,11 +3,18 @@
 * FOS v0.10 built 1402024
 * 
 * The first alpha version of RTOS. It supports Arm Cotrex M7 only with FPU using.
-* OS has been tested by IAR Compiller Arm 8.22.1.
+* OS has been tested by IAR Compiller Arm 8.22.1.15700
 * All optimization levels are supported exept "Common subexpression elimination" and "Instruction scheduling".
 * 
 * OS features:
 * - FOS uses hardware PSP for core stack and threads stack;
 * - To switch context to thread it is needed to call OS function in Main loop;
 * - If thread yeld, contect swithes to Main loop again, so there is no any Main loop lock;
+*/
+
+
+
+/*
+* FOS v0.11 built 2702024
+* Added the support of GCC v7-2018-q2-update with no optimization.
 */

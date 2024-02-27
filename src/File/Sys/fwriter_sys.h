@@ -36,24 +36,6 @@ void FWriter_SysProc(fwriter_t *p);
 // получить длину данных которые надо записать
 uint16_t FWriter_GetDataToWrite(fwriter_t *p);
 
-// обработчик ошибок
-static void Private_FWriter_ErrorProc(fwriter_t *p);
-
-// обработчик режима OFF
-static void Private_FWriter_ProcOffMode(fwriter_t *p);
-
-// обработчик режима IDDLE и режима ON
-static void Private_FWriter_IddleAndOnMode(fwriter_t *p);
-
-// обработчик режима TEST
-static void Private_FWriter_TestMode(fwriter_t *p);
-
-// записать данные из буфера
-static uint16_t Private_FWriter_BufWrite(fwriter_t *p);
-
-// тестовая запись в файл
-static void Private_FWriter_TestWrite(fwriter_t *p);
-
 
 
 #endif /* APPLICATION_FOS_FILE_SYS_FWRITER_SYS_H_ */

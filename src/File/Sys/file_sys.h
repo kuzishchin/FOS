@@ -62,20 +62,6 @@ void File_MountProc();
 
 
 
-// уступить другому процессу
-// реализация через системный вызов
-__weak fos_ret_t SYS_FOS_Sleep(uint32_t time);
-
-
-
-// обработка состояния устройства
-static void Private_File_MountProc(uint8_t dev);
-
-// смотнитровать файловую систему
-static file_err_t Private_Mount(uint8_t dev_num);
-
-// размонтировать файловую систему
-static file_err_t Private_Unmount(uint8_t dev_num);
 
 
 

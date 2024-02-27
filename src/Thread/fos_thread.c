@@ -26,6 +26,47 @@
 #include <string.h>
 
 
+// получить адрес максимальной отметки заполнения стека
+static uint32_t FOS_ThreadGetAdrStackWatermark(uint32_t low_sp, uint32_t high_sp);
+
+// обработать сосояние потока
+static void FOS_ThreadProcState(fos_thread_t *p);
+
+// добавить данные в стек потока
+static void FOS_ThreadPushStack(fos_thread_t *p, uint32_t val);
+
+// удалить данные из стека потока
+//static void FOS_ThreadPopStack(fos_thread_t *p);
+
+// инициализация стека потока
+static void FOS_ThreadStackInit(fos_thread_t *p);
+
+// функция ловушка для избежания выхода за пределы основного цикла потока
+static void Private_FOS_InfLoop();
+
+// установить флаг блокировки потока
+static void FOS_ThreadSetLockFlag(fos_thread_t *p, uint32_t lock);
+
+// сбросить флаг блокировки
+static void FOS_ThreadReleaseLockFlag(fos_thread_t *p, uint32_t lock);
+
+// вызов callback ошибки стека
+static void FOS_Call_StackErrorCallback(fos_thread_dbg_t *p, user_desc_t user_desc);
+
+// бработчик callback ошибки стека
+static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
+
+
+// прототип функции завершения потока
+// реализация через системный вызов
+__weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
+
+// прототип перехватчика ошибок
+// реализация через системный вызов
+__weak void SYS_FOS_ErrorSet(fos_err_t *err);
+
+
+
 // инициализация потока
 void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 {
@@ -37,7 +78,7 @@ void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 		return;
 
 	strncpy(p->name, init->name_ptr, FOS_THR_NAME_LEN);
-	memcpy(&p->cset, &init->cset, sizeof(fos_thread_сset_t));
+	memcpy(&p->cset, &init->cset, sizeof(fos_thread_cset_t));
 	memcpy(&p->set, &init->set, sizeof(fos_thread_set_t));
 	memset(&p->var, 0, sizeof(fos_thread_var_t));
 	memset(&p->dbg, 0, sizeof(fos_thread_dbg_t));

@@ -1,22 +1,28 @@
 # Fly Operating System (FOS)
 
 ### Information
-FOS is a Real Time Operation System (RTOS) for robotic systems built at MCU. It supports ARM M7 and tested at stm32f722.
+FOS is a Real Time Operating System (RTOS) for MCU-controlled robotic systems. 
+Current version features support for ARM M7 core.
 
 
 ### OS parts
 1. API - API for user threads
-2. Core - the kerne realization of OS
-3. File - users API and file objects of file system
-4. Mem - the system and threads heap realization
-5. Platform - the prototypes of platform dependent functions
-6. Run - the starting OS fucntions
-7. Sync - the thread synchronization objects
-8. System - the low level OS functions
-9. Thread - system threads and the scheduler
+2. Core - implementation of the OS kernel 
+3. File - user API and file objects of the file system
+4. Mem - heap implementation for system and threads 
+5. Platform - prototype platform-specific functions
+6. Run - OS startup functions
+7. Sync - objects for thread synchronization
+8. System - low level OS functions
+9. Thread - system threads and scheduler
 
-All OS parts can be found in the folfer `/src`. All paths are relative to the folfer `/src`.
+The file `fos_conf.h ` in the root folder contains all OS configuration.
+
+All OS parts are located in the `/src` folder. All paths are relative to the `/src` folder.
 
 ### OS dependencies
-To work this OS needs support libs that can be found the link below.
-You may be using [FosSupportLibs](https://github.com/kuzishchin/FosSupportLibs).
+FOS works with support libs [FosSupportLibs] which can be found at the link below.
+(https://github.com/kuzishchin/FosSupportLibs).
+
+### Test information
+OS has been tested with STM32F722 MCU, compillers IAR ARM v8.22.1.15700 and GCC v7-2018-q2-update. Read `Version.txt` for more information.

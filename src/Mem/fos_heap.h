@@ -46,18 +46,6 @@ void FOS_Heap_ThreadsHeap_Free(void* ptr);
 
 
 
-// прототип перехватчика ошибок
-// реализация через системный вызов
-__weak void SYS_FOS_ErrorSet(fos_err_t *err);
-
-
-
-// обработчик ошибки кучи ядра
-static void Private_FOS_Heap_CoreHeap_ErrCbk();
-
-// обработчик ошибки кучи процессов
-static void Private_FOS_Heap_ThreadsHeap_ErrCbk();
-
 
 #endif /* APPLICATION_FOS_MEM_FOS_HEAP_H_ */
 

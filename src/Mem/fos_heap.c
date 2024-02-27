@@ -33,6 +33,17 @@ dmem_heap_t core_heap;        // куча ядра
 dmem_heap_t threads_heap;     // куча процессов
 
 
+// обработчик ошибки кучи ядра
+static void Private_FOS_Heap_CoreHeap_ErrCbk();
+
+// обработчик ошибки кучи процессов
+static void Private_FOS_Heap_ThreadsHeap_ErrCbk();
+
+// прототип перехватчика ошибок
+// реализация через системный вызов
+__weak void SYS_FOS_ErrorSet(fos_err_t *err);
+
+
 // инициализация куч
 void FOS_Heap_Init()
 {

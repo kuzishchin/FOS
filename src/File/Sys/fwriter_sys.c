@@ -28,6 +28,25 @@
 static uint8_t write_buf[FOS_FILEWR_MAX_BUF_LEN];   // буфер на запись
 
 
+// обработчик ошибок
+static void Private_FWriter_ErrorProc(fwriter_t *p);
+
+// обработчик режима OFF
+static void Private_FWriter_ProcOffMode(fwriter_t *p);
+
+// обработчик режима IDDLE и режима ON
+static void Private_FWriter_IddleAndOnMode(fwriter_t *p);
+
+// обработчик режима TEST
+static void Private_FWriter_TestMode(fwriter_t *p);
+
+// записать данные из буфера
+static uint16_t Private_FWriter_BufWrite(fwriter_t *p);
+
+// тестовая запись в файл
+static void Private_FWriter_TestWrite(fwriter_t *p);
+
+
 // инициализация
 fos_ret_t FWriter_Init(fwriter_t *p, file_init_t *init)
 {

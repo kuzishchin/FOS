@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_context.c
  * @brief     Low level functional for context switch. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      27.02.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,9 +26,10 @@
 
 fos_mgv_t fos_mgv;                            // основные глобальные переменные
 
-#pragma data_alignment = 8
+//#pragma data_alignment = 8
 uint32_t core_stack[FOS_CORE_STACK_SIZE / 4]; // стек ядра
 //#pragma data_alignment = 1
+
 
 
 // подготовить второй аппаратный стек
@@ -70,11 +71,50 @@ void FOS_Core_GoToUserMode()
 // обработчик прерывания PendSV
 void PendSV_Handler()
 {
-	static __istate_t stat;
+	/*
+	 * Входим в критическую секцию кода
+	 */
+	__asm volatile ("ldr r0, =1");            // r0 = 1
+	__asm volatile ("msr primask, r0");       // basepri = r0 = 1, блокируем прерывания
 
-	ENTER_CRITICAL(stat);                        // обязательно входим в критическую секцию кода
+	/*
+	 * Восстанвливаем значение регистра r7
+	 * Нужно только для GCC компилятора
+	 */
+#if defined (GCC_COMPILER)
+	__asm volatile ("mov r3, r7");               // r3 = r7
+	__asm volatile ("mrs r0, msp");              // r0 = msp
+	__asm volatile ("add r1, r0, #16");          // отступаем назад на 16 байт к r7
+	__asm volatile ("ldmfd r1, {r7}");           // восстанавливаем r7
+#endif
 
-	FOS_Core_SaveContext();                      // сохраняем контекст
+	/*
+	 * Сохранить контекст
+	 * Пишем non-volatile регистры в стек PSP
+	 * r4-r11, S16-S31
+	 *
+	 * Регистры volatile уже сохранены в стеке PSP аппаратно автоматически при входе в PendSV_Handler
+	 * r0-r3, r12, r14(LR), retAdr, xPSR, S0-S15, FPSCR
+	 *
+	 * r13(SP) и r15(PC) - сохранять не нужно
+	 */
+	__asm volatile ("mrs r0, psp");              // r0 = psp
+
+	// пишем регистры в стек с общим смещение 32+16=48 байт
+	__asm volatile ("sub r1, r0, #16");          // r1 = r0 - 16 = psp - 16, отступаем вверх по стеку на 16 байт
+	__asm volatile ("stmdb r1, {r4-r11}");       // сохраняем регитсры r4-r11 отступая вверх по стеку на 8*4=32 байта
+
+	// пишем регистры в стек с общим смещение 64+64=128 байт
+	__asm volatile ("sub r2, r0, #64");          // r2 = r0 - 64 = psp - 64, отступаем вверх по стеку на 64 байта
+	__asm volatile ("vstmDB r2!, {S16-S31}");    // сохраняем регитсры S16-S31 отступая вверх по стеку на 16*4=64 байта
+
+	/*
+	 * Возвращаем значение регистар r7
+	 * Нужно только для GCC компилятора
+	 */
+#if defined (GCC_COMPILER)
+	__asm volatile ("mov r7, r3");               // r7 = r3
+#endif
 
 	/*
 	 * В зависисости от режима
@@ -112,56 +152,47 @@ void PendSV_Handler()
 		break;
 	}
 
-	FOS_Core_LoadContext();                      // восстанавливаем конекст
 
-	LEAVE_CRITICAL(stat);                        // выходим из критической секции
-}
-
-
-// сохранить конектс
-static void FOS_Core_SaveContext()
-{
 	/*
-	 * TO DO:
-	 * Сохранить контекст
-	 * Пишем non-volatile регистры в стек PSP
-	 * Регистры volatile уже сохранены в стеке PSP аппаратно автоматически при входе в PendSV_Handler
+	 * Загружаем контекст
+	 * non-volatile
+	 * r4-r11, S16-S31
+	 *
+	 * volatile
+	 * r0-r3, r12, r14(LR), retAdr, xPSR, S0-S15, FPSCR
+	 *
+	 * r13(SP) и r15(PC) - трогать не нужно
 	 */
+	__asm volatile ("mrs r0, psp");               // r0 = psp
 
-	__asm volatile
-	(
-	"	mrs r0, psp                  \n"
+	// читаем регитсры из стека со смещением 48 байт
+	__asm volatile ("sub r1, r0, #48");           // r1 = r0 - 48 = psp - 48, отступаем вверх по стеку на 44 байт
+	__asm volatile ("ldmfd r1, {r4-r11}");        // читаем регистры сверху вниз
 
-	"   sub r1, r0, #16              \n"
-	"   stmdb r1, {r4-r11}           \n"
-
-	"	sub r2, r0, #64              \n"
-	"   vstmDB r2!, {S16-S31}         \n"
-	);
-}
+	// читаем регитсры из стека со смещением 128 байт
+	__asm volatile ("sub r2, r0, #128");         // r2 = r0 - 128 = psp - 128, отступаем вверх по стеку на 128 байт
+	__asm volatile ("vldmIA r2!, {S16-S31}");    // читаем регистры сверху вниз
 
 
-// восстановить контекст
-static void FOS_Core_LoadContext()
-{
+
 	/*
-	 * TO DO:
-	 * Восстановить контекст
-	 * Читаем non-volatile регистры из стека PSP
-	 * Регистры volatile востановятся из стека PSP аппаратно автоматически при выходе из PendSV_Handler
+	 * Выходим из критической секции кода
 	 */
+	__asm volatile ("ldr r0, =0");            // r0 = 0
+	__asm volatile ("msr primask, r0");       // basepri = r0 = 0, разрешаем прерывания
 
-	__asm volatile
-	(
-	"	mrs r0, psp                 \n"
-
-	"   sub r1, r0, #48             \n"
-	"   ldmfd r1, {r4-r11}          \n"
-
-	"   sub r2, r0, #128            \n"
-	"   vldmIA r2!, {S16-S31}        \n"
-	);
+	/*
+	 * Выходим сами
+	 * Нужно только для GCC компилятора
+	 */
+#if defined (GCC_COMPILER)
+	__asm volatile ("add sp, #16");           // очищаем стек
+	__asm volatile ("pop {r0, lr}");
+	__asm volatile ("bx lr");                 // выходим
+#endif
 }
+
+
 
 
 

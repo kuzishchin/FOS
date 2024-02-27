@@ -25,6 +25,19 @@
 #include <string.h>
 
 
+// инкремент индекса
+static uint8_t Private_FOS_Lock_IncInd(uint8_t ind);
+
+
+// заглушка на блокировку потока с id
+// реализация через функцию ядра
+__weak void FOS_Lock_LockThread(uint8_t thr_id);
+
+// заглушка на разблокировку потока с id
+// реализация через функцию ядра
+__weak void FOS_Lock_UnlockThread(uint8_t thr_id);
+
+
 // инициализация
 void FOS_Lock_Init(fos_lock_t *p)
 {

@@ -24,6 +24,48 @@
 #include "Core/fos.h"
 #include <string.h>
 
+// получить id потока по его дескриптору
+static uint8_t FOS_GetThreadId(fos_t *p, fos_thread_t *thr);
+
+// получение дескриптора потока по id
+static fos_thread_t* FOS_GetThreadDesc(fos_t *p, uint8_t id);
+
+// получение id семафора по пользовательскопу дескриптору
+static uint8_t FOS_GetUdSemaphoreBinaryId(fos_t *p, user_desc_t user_desc);
+
+// получить id семафора по его дескриптору
+static uint8_t FOS_GetSemaphoreBinaryId(fos_t *p, fos_semaphore_binary_t *semb);
+
+// получение дескриптора бинарного семафора по id
+static fos_semaphore_binary_t* FOS_GetSemaphoreBinaryDesc(fos_t *p, uint8_t id);
+
+// получить id объекта записи по его дескриптору
+static uint8_t FOS_GetFWriterId(fos_t *p, fwriter_t *fw);
+
+// инициализация ядра ОС
+static void Private_FOS_Core_Init(fos_t *p);
+
+// планировщик потоков
+static int16_t Private_FOS_Sheduler(fos_t *p);
+
+// сохранить стек пользовательского потока
+static void Private_FOS_SaveUserSP(fos_t *p);
+
+// загрузить стек пользовательского потока
+static void Private_FOS_LoadUserSP(fos_t *p);
+
+// сгенирировать уникальный пользовательский дескриптор
+static user_desc_t Private_FOS_GenUserDesc(fos_t *p);
+
+// обновить максимальный индекс таблицы дескрипторов потоков
+static void Private_FOS_UpdThreadMaxInd(fos_t *p);
+
+// обновить максимальный индекс таблицы дескрипторов бинарных семафоров
+static void Private_FOS_UpdSemBinaryMaxInd(fos_t *p);
+
+// обновить максимальный индекс таблицы дескрипторов объектов записи
+static void Private_FOS_UpdFWriterMaxInd(fos_t *p);
+
 
 // инициализация ОС
 void FOS_Init(fos_t *p)

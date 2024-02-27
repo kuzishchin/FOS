@@ -25,7 +25,7 @@
 
 
 #include "fos_conf.h"
-#include "compiler_macros.h"
+#include "Platform/compiler_macros.h"
 #include <stdint.h>
 #include <stddef.h>
 
@@ -126,7 +126,7 @@ typedef struct
 	uint32_t ep;               // адрес точки входа
 	uint32_t stack_size;       // размер стека
 
-} fos_thread_сset_t;
+} fos_thread_cset_t;
 
 
 // настройки потока
@@ -141,7 +141,7 @@ typedef struct
 typedef struct
 {
 	char *name_ptr;            // указатель на имя потока
-	fos_thread_сset_t cset;    // константные настройки
+	fos_thread_cset_t cset;    // константные настройки
 	fos_thread_set_t  set;     // начальные настройки
 
 } fos_thread_init_t;

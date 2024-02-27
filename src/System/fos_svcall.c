@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svcall.c
  * @brief     Low level functional for system calls. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      27.02.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,14 +26,18 @@
 sys_call_t sys_call;                // системные вызовы
 
 
+// зарегистировать системную функцию
+static void _system_reg_call(sys_call_t *p, svcall_t func, uint16_t func_id);
+
+
 // систенмый вызов функции с номером func_id и аргументами args
 void system_call(uint32_t func_id, void *args)
 {
-	__asm volatile("	push {%0}\n	" ::"r"(func_id));
-	__asm volatile("	push {%0}\n	" ::"r"(args));
-	__asm volatile("	svc 0\n"	);
-	__asm volatile("	pop {%0}\n	" ::"r"(func_id));
-	__asm volatile("	pop {%0}\n	" ::"r"(func_id));
+	__asm volatile("push {%0}" ::"r"(func_id));
+	__asm volatile("push {%0}" ::"r"(args));
+	__asm volatile("svc 0");
+	__asm volatile("pop {%0}" ::"r"(func_id));
+	__asm volatile("pop {%0}" ::"r"(func_id));
 }
 
 
@@ -63,11 +67,11 @@ void SVC_Handler(void)
 	static uint32_t func_id  = 0;
 	static uint32_t args_adr = 0;
 
-	__asm volatile("	mrs r0, psp\n	");
-	__asm volatile("	add r1, r0, #104 \n	");
-	__asm volatile("	ldmfd r1, {r2-r3} \n	");
-	__asm volatile("	STR r3, [%0]\n	" ::"r"(&func_id));
-	__asm volatile("	STR r2, [%0]\n	" ::"r"(&args_adr));
+	__asm volatile("mrs r0, psp");
+	__asm volatile("add r0, r0, #104");
+	__asm volatile("ldmfd r0, {r1-r2}");
+	__asm volatile("str r2, [%0]" ::"r"(&func_id));
+	__asm volatile("str r1, [%0]" ::"r"(&args_adr));
 
 	system_handler(func_id, args_adr);
 }
@@ -86,7 +90,7 @@ static void _system_reg_call(sys_call_t *p, svcall_t func, uint16_t func_id)
 	if((p == NULL) || (func == NULL) || func_id >= FOS_SYS_CALL_CNT)
 		return;
 
-	if(p->reg_list[func_id] == NULL)
+	if(p->reg_list[func_id] == 0)
 		p->reg_list[func_id] = (uint32_t)func;
 }
 
