@@ -25,30 +25,30 @@
 
 
 
-#define FOS_MAX_THR_CNT        32          // максимальное число потоков
-#define FOS_SEM_BIN_CNT        32          // максимальное число бинарных светофоров
-#define FOS_FWRITER_CNT        32          // максимальное число объктов записи
-#define FOS_SYS_CALL_CNT       32          // максимальное число системных вызовов
-#define FOS_PRIORITY_CNT       8           // максимальное число приоритетов (0 - наивысший)
-#define FOS_THR_NAME_LEN       16          // длина имени потока
-#define FOS_MAX_STR_ERR_LEN    32          // максимальная длина строки описания ошибки
+#define FOS_MAX_THR_CNT        32          // maximum thread count
+#define FOS_SEM_BIN_CNT        32          // maximum binary semaphore count
+#define FOS_FWRITER_CNT        32          // maximum writer objects count
+#define FOS_SYS_CALL_CNT       32          // maximum system call count
+#define FOS_PRIORITY_CNT       8           // maximum priorities count(0 is the highest, 1 - lower than 0, etc.)
+#define FOS_THR_NAME_LEN       16          // thread name length
+#define FOS_MAX_STR_ERR_LEN    32          // maximum length of error descriptive string
 
-#define FOS_USE_FATFS                      // использовать FatFs
-#define FOS_MAX_FS_DEV         2           // максимальное число устройств
-#define FOS_FILEWR_MAX_BUF_LEN 2048        // максимальный размер буфера на запись, байт
-#define FOS_FS_TIMEOUT_MS      2000        // таймаут при работе с файловой системой, мс
-#define FOS_FSDEV_TIMEOUT_MS   5000        // таймаут при монитровании устройсва, мс
+#define FOS_USE_FATFS                      // use FatFs
+#define FOS_MAX_FS_DEV         2           // maximum number of devices
+#define FOS_FILEWR_MAX_BUF_LEN 2048        // maximum written buffer size, bytes
+#define FOS_FS_TIMEOUT_MS      2000        // timeout setting for file system, ms
+#define FOS_FSDEV_TIMEOUT_MS   5000        // timeout setting for device mounting, ms
 
-#define FOS_HARD_FAULT_CALL_ID 0xFFFF      // номер функции вызова hard fault
+#define FOS_HARD_FAULT_CALL_ID 0xFFFF      // identifier of hard fault calling function
 
-#define FOS_CORE_STACK_SIZE    0x800       // размер стека ядра (минимум нужно 0х500)
-#define FOS_CORE_HEAP_SIZE     0x2000      // размер кучи ядра
-#define FOS_THREADS_HEAP_SIZE  0x18000     // размер кучи для всех процессов
+#define FOS_KERNEL_STACK_SIZE  0x800       // kernel stack size (minimum size 0х500)
+#define FOS_KERNEL_HEAP_SIZE   0x2000      // kernel heap size
+#define FOS_THREADS_HEAP_SIZE  0x18000     // heap size for all the threads
 
-#define FOS_DEF_THR_STACK_SIZE 0x400       // размер стека потока по умолчанию
-#define FOS_DEF_THR_HEAP_SIZE  0x400       // размер кучи потока по умолчанию
+#define FOS_DEF_THR_STACK_SIZE 0x400       // default thread stack size
+#define FOS_DEF_THR_HEAP_SIZE  0x400       // default thread heap size
 
-#define FOS_ERROR_STACK_WML    40.0f       // генрация ошибки при превышении этого уровня заполнености стека в %
+#define FOS_ERROR_STACK_WML    40.0f       // maximum stack fill factor value %, (error event is triggered if exceeded)
 
 
 

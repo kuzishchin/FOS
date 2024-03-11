@@ -35,18 +35,14 @@ typedef struct
 } sys_call_t;
 
 
-// систенмый вызов функции с номером func_id и аргументами args
-void system_call(uint32_t func_id, void *args);
-
-// обработчик системного вызова
-void system_handler(uint32_t func_id, uint32_t args_adr);
-
-// обработчик прерывания системного вызова
-void SVC_Handler(void);
-
 // зарегистировать системную функцию
 void system_reg_call(svcall_t func, uint16_t func_id);
 
+// систенмый вызов функции с номером func_id и аргументами args
+void system_call(uint32_t func_id, void *args);
+
+// обработчик прерывания системного вызова
+void SVC_Handler(void);
 
 
 

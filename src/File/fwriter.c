@@ -26,22 +26,30 @@
 #include <string.h>
 
 
-// смена режима работы
+// change writer work mode
 static fos_ret_t FWriter_SetMode(fwriter_t *p, file_mode_t mode);
 
-// ожидание состояния
+// pending file state
 static fos_ret_t FWriter_WaitingState(fwriter_t *p, file_state_t state, uint32_t timeout_ms);
 
-// установить путь
+// set path
 static fos_ret_t FWriter_SetPath(fwriter_t *p, fsys_path_t *path);
 
 
+// yield to another process
+// implemented with system call, not indicated in the header file
+__weak fos_ret_t SYS_FOS_Sleep(uint32_t time)
+{
+	return FOS__OK;
+}
+
+
 /*
- * Открыть файл
- * Вызывать из потока владельца
- * p    - указатель на объект записи
- * path - путь к файлу
- * Возвращает результат выполнения
+ * Open file
+ * Call from the owner thread
+ * p    - pointer to the writer object
+ * path - path to the file
+ * Returns execution result
  */
 fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path)
 {
@@ -51,14 +59,14 @@ fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path)
 	if(p->state == FILE_STATE__NO_INIT)
 		return FOS__FAIL;
 
-	// сбрасываем ошибки
+	// reset errors
 	p->var.err = FILE_ERR__NO;
 
-	// задаем путь
+	// specify file path
 	if(FWriter_SetPath(p, path) != FOS__OK)
 		return FOS__FAIL;
 
-	// ставим режим
+	// set mode
 	if(FWriter_SetMode(p, FILE_MODE__ON) != FOS__OK)
 		return FOS__FAIL;
 
@@ -70,10 +78,10 @@ fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path)
 
 
 /*
- * Закрыть файл
- * Вызывать из потока владельца
- * p - указатель на объект записи
- * Возвращает результат выполнения
+ * Close file
+ * Call from the owner thread
+ * p - pointer to the writer object
+ * Returns execution result
  */
 fos_ret_t API_FWriter_Close(fwriter_t *p)
 {
@@ -83,7 +91,7 @@ fos_ret_t API_FWriter_Close(fwriter_t *p)
 	if(p->state == FILE_STATE__NO_INIT)
 		return FOS__FAIL;
 
-	// ставим режим
+	// set mode
 	if(FWriter_SetMode(p, FILE_MODE__IDDLE) != FOS__OK)
 		return FOS__FAIL;
 
@@ -98,10 +106,10 @@ fos_ret_t API_FWriter_Close(fwriter_t *p)
 
 
 /*
- * Начать тестовую запись
- * Вызывать из потока владельца
- * p - указатель на объект записи
- * Возвращает результат выполнения
+ * Begin test writing
+ * Call from the owner thread
+ * p - pointer to the writer object
+ * Returns execution result
  */
 fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p)
 {
@@ -111,7 +119,7 @@ fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p)
 	if(p->state == FILE_STATE__NO_INIT)
 		return FOS__FAIL;
 
-	// ставим режим
+	// set writer work mode
 	if(FWriter_SetMode(p, FILE_MODE__TEST) != FOS__OK)
 		return FOS__FAIL;
 
@@ -123,13 +131,13 @@ fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p)
 
 
 /*
- * Записать данные
- * Потокобезопасно. Вызывать из любого потока, основного цикла или прерывания
- * p    - указатель на объект записи
- * data - указатель на записываемые данные
- * data_len - длина записываемых данных
- * Примесаение: записываемые данные копируются целиком
- * Возвращает результат выполнения
+ * Write data
+ * Thread-safe. Call from any thread, main loop or interrupt
+ * p - pointer to the writer object
+ * data - pointer to the written data
+ * data_len - length of the written data
+ * Note: written data is copied in one piece
+ * Returns execution result
  */
 fos_ret_t API_FWriter_Write(fwriter_t *p, uint8_t* data, uint32_t data_len)
 {
@@ -147,10 +155,10 @@ fos_ret_t API_FWriter_Write(fwriter_t *p, uint8_t* data, uint32_t data_len)
 
 
 /*
- * Синхронизовать данные
- * Вызывать из потока владельца
- * p - указатель на объект записи
- * Возвращает результат выполнения
+ * Synchronize data
+ * Call from the owner thread
+ * p - pointer to the writer object
+ * Returns execution result
  */
 fos_ret_t API_FWriter_FSync(fwriter_t *p)
 {
@@ -164,9 +172,9 @@ fos_ret_t API_FWriter_FSync(fwriter_t *p)
 
 
 /*
- * Получить состояние файла
- * p - указатель на объект записи
- * Возвращает состояние файла
+ * Receive file state
+ * p - pointer to the writer object
+ * Returns file state
  */
 file_state_t API_FWriter_GetFileState(fwriter_t *p)
 {
@@ -177,15 +185,7 @@ file_state_t API_FWriter_GetFileState(fwriter_t *p)
 }
 
 
-// уступить другому процессу
-// реализация через системный вызов, в заголовочный файн не выведена
-__weak fos_ret_t SYS_FOS_Sleep(uint32_t time)
-{
-	return FOS__OK;
-}
-
-
-// смена режима работы
+// change writer work mode
 static fos_ret_t FWriter_SetMode(fwriter_t *p, file_mode_t mode)
 {
 	if(p == NULL)
@@ -212,7 +212,7 @@ static fos_ret_t FWriter_SetMode(fwriter_t *p, file_mode_t mode)
 }
 
 
-// ожидание состояния
+// pending file state
 static fos_ret_t FWriter_WaitingState(fwriter_t *p, file_state_t state, uint32_t timeout_ms)
 {
 	const uint32_t sleep = 10;
@@ -240,7 +240,7 @@ static fos_ret_t FWriter_WaitingState(fwriter_t *p, file_state_t state, uint32_t
 }
 
 
-// установить путь
+// set path
 static fos_ret_t FWriter_SetPath(fwriter_t *p, fsys_path_t *path)
 {
 	if((p == NULL) || (path == NULL))

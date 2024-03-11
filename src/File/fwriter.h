@@ -29,58 +29,58 @@
 
 
 /*
- * Открыть файл
- * Вызывать из потока владельца
- * p    - указатель на объект записи
- * path - путь к файлу
- * Возвращает результат выполнения
+ * Open file
+ * Call from the owner thread
+ * p    - pointer to the writer object
+ * path - path to the file
+ * Returns execution result
  */
 fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path);
 
 
 /*
- * Закрыть файл
- * Вызывать из потока владельца
- * p - указатель на объект записи
- * Возвращает результат выполнения
+ * Close file
+ * Call from the owner thread
+ * p - pointer to the writer object
+ * Returns execution result
  */
 fos_ret_t API_FWriter_Close(fwriter_t *p);
 
 
 /*
- * Начать тестовую запись
- * Вызывать из потока владельца
- * p - указатель на объект записи
- * Возвращает результат выполнения
+ * Begin test writing
+ * Call from the owner thread
+ * p - pointer to the writer object
+ * Returns execution result
  */
 fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p);
 
 
 /*
- * Записать данные
- * Потокобезопасно. Вызывать из любого потока, основного цикла или прерывания
- * p    - указатель на объект записи
- * data - указатель на записываемые данные
- * data_len - длина записываемых данных
- * Примесаение: записываемые данные копируются целиком
- * Возвращает результат выполнения
+ * Write data
+ * Thread-safe. Call from any thread, main loop or interrupt
+ * p - pointer to the writer object
+ * data - pointer to the written data
+ * data_len - length of the written data
+ * Note: written data is copied in one piece
+ * Returns execution result
  */
 fos_ret_t API_FWriter_Write(fwriter_t *p, uint8_t* data, uint32_t data_len);
 
 
 /*
- * Синхронизовать данные
- * Вызывать из потока владельца
- * p - указатель на объект записи
- * Возвращает результат выполнения
+ * Synchronize data
+ * Call from the owner thread
+ * p - pointer to the writer object
+ * Returns execution result
  */
 fos_ret_t API_FWriter_FSync(fwriter_t *p);
 
 
 /*
- * Получить состояние файла
- * p - указатель на объект записи
- * Возвращает состояние файла
+ * Receive file state
+ * p - pointer to the writer object
+ * Returns file state
  */
 file_state_t API_FWriter_GetFileState(fwriter_t *p);
 

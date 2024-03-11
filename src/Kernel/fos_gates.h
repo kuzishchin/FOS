@@ -1,8 +1,8 @@
 /**************************************************************************//**
- * @file      fos_context.h
- * @brief     Low level functional for context switch. Header file.
- * @version   V1.0.01
- * @date      27.02.2024
+ * @file      fos_gates.h
+ * @brief     Gates for system call handling. Header file.
+ * @version   V1.0.00
+ * @date      14.02.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -20,27 +20,23 @@
 * limitations under the License.
 */
 
-#ifndef APPLICATION_FOS_SYSTEM_CONTEXT_H_
-#define APPLICATION_FOS_SYSTEM_CONTEXT_H_
+#ifndef APPLICATION_FOS_CORE_FOS_GATES_H_
+#define APPLICATION_FOS_CORE_FOS_GATES_H_
 
 
-#include "fos_types.h"
+#include "Kernel/user_fos.h"
 
 
-// подготовить второй аппаратный стек
-void FOS_System_PreparePSP();
-
-// перейти в режим ядра
-void FOS_System_GoToKernelMode(fos_sw_t swithed_by_tim);
-
-// перейти в режим пользователя
-void FOS_System_GoToUserMode();
-
-// обработчик прерывания PendSV
-void PendSV_Handler();
+// инициализировать шлюзы системных вызовов
+void GATE_FOS_Init();
 
 
-#endif /* APPLICATION_FOS_SYSTEM_CONTEXT_H_ */
+#endif /* APPLICATION_FOS_CORE_FOS_GATES_H_ */
+
+
+
+
+
 
 
 

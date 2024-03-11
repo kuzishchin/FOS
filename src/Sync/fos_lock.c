@@ -31,11 +31,19 @@ static uint8_t Private_FOS_Lock_IncInd(uint8_t ind);
 
 // заглушка на блокировку потока с id
 // реализация через функцию ядра
-__weak void FOS_Lock_LockThread(uint8_t thr_id);
+__weak void FOS_Lock_LockThread(uint8_t thr_id)
+{
+
+}
+
 
 // заглушка на разблокировку потока с id
 // реализация через функцию ядра
-__weak void FOS_Lock_UnlockThread(uint8_t thr_id);
+__weak void FOS_Lock_UnlockThread(uint8_t thr_id)
+{
+
+}
+
 
 
 // инициализация
@@ -105,20 +113,9 @@ uint8_t FOS_Lock_GetLockedThreadsCount(fos_lock_t *p)
 }
 
 
-// заглушка на блокировку потока с id
-// реализация через функцию ядра
-__weak void FOS_Lock_LockThread(uint8_t thr_id)
-{
-
-}
 
 
-// заглушка на разблокировку потока с id
-// реализация через функцию ядра
-__weak void FOS_Lock_UnlockThread(uint8_t thr_id)
-{
 
-}
 
 
 // инкремент индекса

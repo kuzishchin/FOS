@@ -25,33 +25,38 @@
 #include "Run/fos_run.h"
 #include "Platform/fos_tim_platform.h"
 
-/*
- * Прототип функции пользовательской инициплизации
- * Для использования переопределить в удобном месте
- */
-__weak void USER_FOS_InitAndRun();
 
 /*
- * Инициализация и запуск ядра
- * Вызвать перед входом в основной цикл в main
+ * Prototype of the user defined initialization function
+ * Redefine in a suitable location when using
  */
-void RUN_FOS_InitAndRun()
+__weak void USER_FOS_InitAndRun()
 {
-	FOS_Platform_MainTim_Start();        // запуск таймера
-	FOS_Platform_MainTim_Disable();      // и тут же ставим его на паузу
 
-	GATE_FOS_Init();                     // инициализация шлюзов
-	USER_FOS_Init();                     // инициализация переменных ядра
-
-	USER_FOS_InitAndRun();               // пользовательская инициализация
-
-	USER_FOS_Start();                    // запуск ОС
 }
 
 
 /*
- * Обработчик основного цикла
- * Вызвать из основного цикла
+ * Initialization and kernel start
+ * Call before entering the main loop
+ */
+void RUN_FOS_InitAndRun()
+{
+	FOS_Platform_MainTim_Start();        // timer start
+	FOS_Platform_MainTim_Disable();      // and instant timer pause
+
+	GATE_FOS_Init();                     // gate inititalization
+	USER_FOS_Init();                     // kernel variables initialization
+
+	USER_FOS_InitAndRun();               // user defined initialization
+
+	USER_FOS_Start();                    // OS start
+}
+
+
+/*
+ * Main loop handler
+ * Call from the main loop
  */
 void RUN_FOS_MainLoopProc()
 {
@@ -60,23 +65,15 @@ void RUN_FOS_MainLoopProc()
 
 
 /*
- * Обработчик основного таймера
- * Положить в обработчик прерывания основного таймера
+ * Main timer handler
+ * Place to the main timer interrupt handler
  */
 void RUN_FOS_TimHandler()
 {
-	FOS_Core_GoToCoreMode(FOS__ENABLE);        // переключаемся в режим ядра
+	FOS_System_GoToKernelMode(FOS__ENABLE);        // switch to kernel mode
 }
 
 
-/*
- * Прототип функции пользовательской инициализации
- * Для использования переопределить в удобном месте
- */
-__weak void USER_FOS_InitAndRun()
-{
-
-}
 
 
 

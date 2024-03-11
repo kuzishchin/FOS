@@ -27,20 +27,20 @@
 fos_mgv_t fos_mgv;                            // основные глобальные переменные
 
 //#pragma data_alignment = 8
-uint32_t core_stack[FOS_CORE_STACK_SIZE / 4]; // стек ядра
+uint32_t kernel_stack[FOS_KERNEL_STACK_SIZE / 4]; // стек ядра
 //#pragma data_alignment = 1
 
 
 
 // подготовить второй аппаратный стек
-void FOS_Core_PreparePSP()
+void FOS_System_PreparePSP()
 {
 	static uint32_t core_sp = 0;
 	if(core_sp != 0)
 		return;
 
-	core_sp = (uint32_t)core_stack;
-	core_sp += FOS_CORE_STACK_SIZE - 1;
+	core_sp = (uint32_t)kernel_stack;
+	core_sp += FOS_KERNEL_STACK_SIZE - 1;
 	core_sp /= 8;
 	core_sp *= 8;
 
@@ -50,9 +50,9 @@ void FOS_Core_PreparePSP()
 }
 
 // перейти в режим ядра
-void FOS_Core_GoToCoreMode(fos_sw_t swithed_by_tim)
+void FOS_System_GoToKernelMode(fos_sw_t swithed_by_tim)
 {
-	if(fos_mgv.mode != FOS__CORE_WORK_MODE)   // если не режим ядра
+	if(fos_mgv.mode != FOS__KERNEL_WORK_MODE)     // если не режим ядра
 	{
 		fos_mgv.swithed_by_tim = swithed_by_tim;
 		CallPendSV();                         // переключаемся в него
@@ -61,7 +61,7 @@ void FOS_Core_GoToCoreMode(fos_sw_t swithed_by_tim)
 
 
 // перейти в режим пользователя
-void FOS_Core_GoToUserMode()
+void FOS_System_GoToUserMode()
 {
 	if(fos_mgv.mode != FOS__USER_WORK_MODE)   // если не режим пользователя
 		CallPendSV();                         // переключаемся в него
@@ -121,11 +121,11 @@ void PendSV_Handler()
 	 */
 	switch(fos_mgv.mode)
 	{
-	case FOS__CORE_WORK_MODE:                    // если был режим ядра
+	case FOS__KERNEL_WORK_MODE:                  // если был режим ядра
 
 		fos_mgv.mode = FOS__USER_WORK_MODE;      // переключаем флаг режима в пользовательский
 
-		GET_PSP(fos_mgv.core_sp);                // сохраняем указатель стека ядра
+		GET_PSP(fos_mgv.kernel_sp);              // сохраняем указатель стека ядра
 		SET_PSP(fos_mgv.user_sp);                // загружаем указатель стека пользователя
 
 		FOS_Platform_MainTim_Enable();           // запускаем таймер на переключение контекста
@@ -144,10 +144,10 @@ void PendSV_Handler()
 
 		FOS_Platform_MainTim_SetCounter(0);      // и обнуляем таймер
 
-		fos_mgv.mode = FOS__CORE_WORK_MODE;      // переключаем флаг режима в ядро
+		fos_mgv.mode = FOS__KERNEL_WORK_MODE;    // переключаем флаг режима в ядро
 
-		GET_PSP(fos_mgv.user_sp );               // сохраняем указатель стека пользователя
-		SET_PSP(fos_mgv.core_sp);                // загружаем указатель стека ядра
+		GET_PSP(fos_mgv.user_sp);                // сохраняем указатель стека пользователя
+		SET_PSP(fos_mgv.kernel_sp);              // загружаем указатель стека ядра
 
 		break;
 	}

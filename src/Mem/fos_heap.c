@@ -26,7 +26,7 @@
 #include "DMem/dmem.h"
 
 
-uint8_t core_heap_array[FOS_CORE_HEAP_SIZE];           // массив для кучи ядра
+uint8_t kernel_heap_array[FOS_KERNEL_HEAP_SIZE];       // массив для кучи ядра
 uint8_t threads_heap_array[FOS_THREADS_HEAP_SIZE];     // массив для кучи процессов
 
 dmem_heap_t core_heap;        // куча ядра
@@ -39,9 +39,13 @@ static void Private_FOS_Heap_CoreHeap_ErrCbk();
 // обработчик ошибки кучи процессов
 static void Private_FOS_Heap_ThreadsHeap_ErrCbk();
 
+
 // прототип перехватчика ошибок
 // реализация через системный вызов
-__weak void SYS_FOS_ErrorSet(fos_err_t *err);
+__weak void SYS_FOS_ErrorSet(fos_err_t *err)
+{
+
+}
 
 
 // инициализация куч
@@ -52,8 +56,8 @@ void FOS_Heap_Init()
 	/*
 	 * Инициализируем кучу ядра
 	 */
-	init.array_ptr = core_heap_array;
-	init.array_size_byte = FOS_CORE_HEAP_SIZE;
+	init.array_ptr = kernel_heap_array;
+	init.array_size_byte = FOS_KERNEL_HEAP_SIZE;
 	init.dmem_err_cbk_t  = Private_FOS_Heap_CoreHeap_ErrCbk;
 	DMem_HeapInit(&core_heap, &init);
 
@@ -103,20 +107,15 @@ void FOS_Heap_ThreadsHeap_Free(void* ptr)
 }
 
 
-// прототип перехватчика ошибок
-// реализация через системный вызов
-__weak void SYS_FOS_ErrorSet(fos_err_t *err)
-{
 
-}
 
 
 // обработчик ошибки кучи ядра
 static void Private_FOS_Heap_CoreHeap_ErrCbk()
 {
 	fos_err_t err = {0};
-	err.err_code = FOS_ERROR_CORE_HEAP;
-	err.ext_str_ptr = "Wrong CRC in core heap\0";
+	err.err_code = FOS_ERROR_KERNEL_HEAP;
+	err.ext_str_ptr = "Wrong CRC in kernel heap\0";
 	SYS_FOS_ErrorSet(&err);
 }
 

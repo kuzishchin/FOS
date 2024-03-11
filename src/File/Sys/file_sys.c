@@ -42,9 +42,13 @@ static file_err_t Private_Mount(uint8_t dev_num);
 // размонтировать файловую систему
 static file_err_t Private_Unmount(uint8_t dev_num);
 
+
 // уступить другому процессу
 // реализация через системный вызов
-__weak fos_ret_t SYS_FOS_Sleep(uint32_t time);
+__weak fos_ret_t SYS_FOS_Sleep(uint32_t time)
+{
+	return FOS__OK;
+}
 
 
 // смотнитровать файловую систему
@@ -274,12 +278,7 @@ void File_MountProc()
 }
 
 
-// уступить другому процессу
-// реализация через системный вызов
-__weak fos_ret_t SYS_FOS_Sleep(uint32_t time)
-{
-	return FOS__OK;
-}
+
 
 
 // обработка состояния устройства

@@ -2,12 +2,12 @@
 
 ### Information
 FOS is a Real Time Operating System (RTOS) for MCU-controlled robotic systems. 
-Current version features support for ARM M7 core.
+Current version features support for ARM Cortex-M7 core.
 
 
 ### OS parts
 1. API - API for user threads
-2. Core - implementation of the OS kernel 
+2. Kernel - implementation of the OS kernel 
 3. File - user API and file objects of the file system
 4. Mem - heap implementation for system and threads 
 5. Platform - prototype platform-specific functions

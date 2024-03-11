@@ -24,36 +24,42 @@
 #define APPLICATION_FOS_RUN_FOS_RUN_H_
 
 
-#include "Core/fos_gates.h"
+#include "Kernel/fos_gates.h"
 
 
 /*
- * Активировать программный стек
- * Вызвать в самом начале main
+ * Prototype of the user defined initialization function
+ * Redefine in a suitable location when using
+ */
+//__weak void USER_FOS_InitAndRun();
+
+
+/*
+ * Activate the program stack
+ * Call in the very beginning of the 'main'
  */
 #define RUN_FOS_ACTIVATE_PSP_MACRO   \
-		FOS_Core_PreparePSP();       \
+		FOS_System_PreparePSP();     \
         SET_CONTROL(0x06);
 
 
 /*
- * Инициализация и запуск ядра
- * Вызвать перед входом в основной цикл в main
+ * Initialization and kernel start
+ * Call before entering the main loop
  */
 void RUN_FOS_InitAndRun();
 
 /*
- * Обработчик основного цикла
- * Вызвать из основного цикла
+ * Main loop handler
+ * Call from the main loop
  */
 void RUN_FOS_MainLoopProc();
 
 /*
- * Обработчик основного таймера
- * Положить в обработчик прерывания основного таймера
+ * Main timer handler
+ * Place to the main timer interrupt handler
  */
 void RUN_FOS_TimHandler();
-
 
 
 

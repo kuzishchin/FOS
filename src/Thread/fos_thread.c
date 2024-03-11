@@ -59,12 +59,18 @@ static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
 
 // прототип функции завершения потока
 // реализация через системный вызов
-__weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
+__weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
+{
+	return FOS__OK;
+}
+
 
 // прототип перехватчика ошибок
 // реализация через системный вызов
-__weak void SYS_FOS_ErrorSet(fos_err_t *err);
+__weak void SYS_FOS_ErrorSet(fos_err_t *err)
+{
 
+}
 
 
 // инициализация потока
@@ -256,20 +262,7 @@ void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc)
 }
 
 
-// прототип функции завершения потока
-// реализация через системный вызов
-__weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
-{
-	return FOS__OK;
-}
 
-
-// прототип перехватчика ошибок
-// реализация через системный вызов
-__weak void SYS_FOS_ErrorSet(fos_err_t *err)
-{
-
-}
 
 
 // получить адрес максимальной отметки заполнения стека

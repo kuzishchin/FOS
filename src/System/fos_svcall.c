@@ -29,6 +29,17 @@ sys_call_t sys_call;                // системные вызовы
 // зарегистировать системную функцию
 static void _system_reg_call(sys_call_t *p, svcall_t func, uint16_t func_id);
 
+// обработчик системного вызова
+static void system_handler(uint32_t func_id, uint32_t args_adr);
+
+
+
+// зарегистировать системную функцию
+void system_reg_call(svcall_t func, uint16_t func_id)
+{
+	_system_reg_call(&sys_call, func, func_id);
+}
+
 
 // систенмый вызов функции с номером func_id и аргументами args
 void system_call(uint32_t func_id, void *args)
@@ -38,26 +49,6 @@ void system_call(uint32_t func_id, void *args)
 	__asm volatile("svc 0");
 	__asm volatile("pop {%0}" ::"r"(func_id));
 	__asm volatile("pop {%0}" ::"r"(func_id));
-}
-
-
-// обработчик системного вызова
-void system_handler(uint32_t func_id, uint32_t args_adr)
-{
-	svcall_t func = NULL;
-	void*    args = NULL;
-
-	if(func_id == FOS_HARD_FAULT_CALL_ID)
-		func(args);
-
-	if(func_id >= FOS_SYS_CALL_CNT)
-		return;
-
-	func = (svcall_t)sys_call.reg_list[func_id];
-	args = (void*)args_adr;
-
-	if(func)
-		func(args);
 }
 
 
@@ -78,13 +69,6 @@ void SVC_Handler(void)
 
 
 // зарегистировать системную функцию
-void system_reg_call(svcall_t func, uint16_t func_id)
-{
-	_system_reg_call(&sys_call, func, func_id);
-}
-
-
-// зарегистировать системную функцию
 static void _system_reg_call(sys_call_t *p, svcall_t func, uint16_t func_id)
 {
 	if((p == NULL) || (func == NULL) || func_id >= FOS_SYS_CALL_CNT)
@@ -94,6 +78,25 @@ static void _system_reg_call(sys_call_t *p, svcall_t func, uint16_t func_id)
 		p->reg_list[func_id] = (uint32_t)func;
 }
 
+
+// обработчик системного вызова
+static void system_handler(uint32_t func_id, uint32_t args_adr)
+{
+	svcall_t func = NULL;
+	void*    args = NULL;
+
+	if(func_id == FOS_HARD_FAULT_CALL_ID)
+		func(args);
+
+	if(func_id >= FOS_SYS_CALL_CNT)
+		return;
+
+	func = (svcall_t)sys_call.reg_list[func_id];
+	args = (void*)args_adr;
+
+	if(func)
+		func(args);
+}
 
 
 
