@@ -60,6 +60,7 @@ void FOS_Heap_Init()
 	init.array_size_byte = FOS_KERNEL_HEAP_SIZE;
 	init.dmem_err_cbk_t  = Private_FOS_Heap_CoreHeap_ErrCbk;
 	DMem_HeapInit(&core_heap, &init);
+	DMem_SetProcPeriod(&core_heap, FOS_HEAP_CHECK_PERIOD_MS);
 
 	/*
 	 * Инициализируем кучу процессов
@@ -68,6 +69,7 @@ void FOS_Heap_Init()
 	init.array_size_byte = FOS_THREADS_HEAP_SIZE;
 	init.dmem_err_cbk_t  = Private_FOS_Heap_ThreadsHeap_ErrCbk;
 	DMem_HeapInit(&threads_heap, &init);
+	DMem_SetProcPeriod(&threads_heap, FOS_HEAP_CHECK_PERIOD_MS);
 }
 
 

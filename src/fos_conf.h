@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_conf.h
  * @brief     Configuration file of OS. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      12.03.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -22,7 +22,6 @@
 
 #ifndef APPLICATION_FOS_FOS_CONF_H_
 #define APPLICATION_FOS_FOS_CONF_H_
-
 
 
 #define FOS_MAX_THR_CNT        32          // maximum thread count
@@ -48,9 +47,13 @@
 #define FOS_DEF_THR_STACK_SIZE 0x400       // default thread stack size
 #define FOS_DEF_THR_HEAP_SIZE  0x400       // default thread heap size
 
+#define STACK_SIZE_IDDLE_THR   0x400       // iddle thread stack size
+#define STACK_SIZE_FPROC_THR   0x2000      // file proc thread stack size
+
 #define FOS_ERROR_STACK_WML    40.0f       // maximum stack fill factor value %, (error event is triggered if exceeded)
 
-
+#define FOS_STACK_CHECK_PERIOD_MS  100     // stack overflow check period, ms
+#define FOS_HEAP_CHECK_PERIOD_MS   100     // heap check period, ms
 
 #endif /* APPLICATION_FOS_FOS_CONF_H_ */
 

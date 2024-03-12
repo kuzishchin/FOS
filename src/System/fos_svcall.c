@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svcall.c
  * @brief     Low level functional for system calls. Source file.
- * @version   V1.0.01
- * @date      27.02.2024
+ * @version   V1.0.03
+ * @date      11.03.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -55,14 +55,42 @@ void system_call(uint32_t func_id, void *args)
 // обработчик прерывания системного вызова
 void SVC_Handler(void)
 {
+#if defined(IAR_COMPILER)
+
 	static uint32_t func_id  = 0;
 	static uint32_t args_adr = 0;
 
+#elif defined(GCC_COMPILER)
+
+	register uint32_t func_id  __asm("r2");
+	register uint32_t args_adr __asm("r1");
+
+#else
+	#error Unknown!
+#endif
+
 	__asm volatile("mrs r0, psp");
-	__asm volatile("add r0, r0, #104");
+	__asm volatile("add r0, r0, #32");
+
+	__asm volatile
+		(
+				"tst r14, #0x10    \n"
+				"it eq             \n"
+				"addeq r0, r0, #72 \n"
+		);
+
 	__asm volatile("ldmfd r0, {r1-r2}");
+
+#if defined(IAR_COMPILER)
+
 	__asm volatile("str r2, [%0]" ::"r"(&func_id));
 	__asm volatile("str r1, [%0]" ::"r"(&args_adr));
+
+#elif defined(GCC_COMPILER)
+
+#else
+	#error Unknown!
+#endif
 
 	system_handler(func_id, args_adr);
 }

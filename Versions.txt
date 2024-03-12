@@ -18,3 +18,10 @@
 * FOS v0.11 built 2702024
 * Added the support of GCC v7-2018-q2-update with no optimization.
 */
+
+
+/*
+* FOS v0.12 built 1203024
+* System calls optimization
+* OS config optimization
+*/

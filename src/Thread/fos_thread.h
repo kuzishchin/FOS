@@ -26,8 +26,6 @@
 #include "fos_types.h"
 
 
-#define FOS_STACK_CHECK_PERIOD_MS  100                   // период проверки стеков в мс
-
 typedef void (*stack_err_cbk_t)(user_desc_t user_desc);  // прототип функции ошибки стека
 
 // отладка

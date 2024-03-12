@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.c
  * @brief     OS start up functions. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      11.03.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

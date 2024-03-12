@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.h
  * @brief     OS start up functions. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      11.03.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -40,7 +40,7 @@
  */
 #define RUN_FOS_ACTIVATE_PSP_MACRO   \
 		FOS_System_PreparePSP();     \
-        SET_CONTROL(0x06);
+        SET_CONTROL(0x02);
 
 
 /*

@@ -45,8 +45,6 @@ void FOS_System_PreparePSP()
 	core_sp *= 8;
 
 	SET_PSP(core_sp);
-//	SET_CONTROL(0x2);     // включаем второй стек
-//	SET_CONTROL(0x6);     // включае второй стек и принудительно FPU
 }
 
 // перейти в режим ядра

@@ -24,10 +24,6 @@
 #define APPLICATION_FOS_CORE_USER_FOS_H_
 
 
-#define STACK_SIZE_IDDLE_THR     0x200     // размер стека потока бездействия системы
-#define STACK_SIZE_FPROC_THR     0x1000    // размер стека потока файловой системы
-
-
 #include "Kernel/fos.h"
 
 
