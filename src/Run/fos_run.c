@@ -24,6 +24,7 @@
 
 #include "Run/fos_run.h"
 #include "Platform/fos_tim_platform.h"
+#include "Platform/sl_platform.h"
 
 
 /*
@@ -44,6 +45,9 @@ void RUN_FOS_InitAndRun()
 {
 	FOS_Platform_MainTim_Start();        // timer start
 	FOS_Platform_MainTim_Disable();      // and instant timer pause
+
+	FOS_System_SetMainTimPeriod(FOS_SWITCH_CONTEXT_TIME_US);     // set switch context time
+	SL_Delay(FOS_STAB_TIME_MS);                                  // stab time
 
 	GATE_FOS_Init();                     // gate inititalization
 	USER_FOS_Init();                     // kernel variables initialization

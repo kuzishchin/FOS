@@ -47,6 +47,21 @@ void FOS_System_PreparePSP()
 	SET_PSP(core_sp);
 }
 
+
+// установить период основного таймера в мкс
+void FOS_System_SetMainTimPeriod(uint32_t period_us)
+{
+	if(period_us < FOS_MIN_TIM_PERIOD_US)
+		period_us = FOS_MIN_TIM_PERIOD_US;
+
+	if(period_us > FOS_MAX_TIM_PERIOD_US)
+		period_us = FOS_MAX_TIM_PERIOD_US;
+
+	if(!fos_mgv.time_period_us)
+		fos_mgv.time_period_us = period_us;
+}
+
+
 // перейти в режим ядра
 void FOS_System_GoToKernelMode(fos_sw_t swithed_by_tim)
 {
@@ -126,7 +141,9 @@ void PendSV_Handler()
 		GET_PSP(fos_mgv.kernel_sp);              // сохраняем указатель стека ядра
 		SET_PSP(fos_mgv.user_sp);                // загружаем указатель стека пользователя
 
-		FOS_Platform_MainTim_Enable();           // запускаем таймер на переключение контекста
+		FOS_Platform_MainTim_SetARR(fos_mgv.time_period_us);   // ставим период таймера на переключение контекста
+		FOS_Platform_MainTim_SetCounter(0);                    // обнуляем счётчик таймера
+		FOS_Platform_MainTim_Enable();                         // и запускаем таймер
 
 		break;
 
@@ -136,11 +153,9 @@ void PendSV_Handler()
 
 		// запомниаем время затраченное прерванным процессом
 		if(fos_mgv.swithed_by_tim)
-			fos_mgv.thr_dt_us = 1000;
+			fos_mgv.thr_dt_us = fos_mgv.time_period_us;
 		else
 			fos_mgv.thr_dt_us = FOS_Platform_MainTim_GetCounter();
-
-		FOS_Platform_MainTim_SetCounter(0);      // и обнуляем таймер
 
 		fos_mgv.mode = FOS__KERNEL_WORK_MODE;    // переключаем флаг режима в ядро
 

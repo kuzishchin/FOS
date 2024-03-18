@@ -57,6 +57,12 @@ __weak uint32_t FOS_Platform_MainTim_GetCounter()
 
 
 /*
+ * Prototype of main timer set auto-reload register
+ */
+__weak void FOS_Platform_MainTim_SetARR(uint32_t val){}
+
+
+/*
  * Prototype of call pending interrupt function by main timer
  */
 __weak void CallPendSV(){}

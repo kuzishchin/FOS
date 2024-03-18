@@ -40,6 +40,9 @@
 #define FOS_WRONG_FWRITER_ID   0xFF          // identifier of a wrong writer object descriptor
 #define FOS_WRONG_USER_DESC    0             // wrong user defined descriptor
 
+#define FOS_MIN_TIM_PERIOD_US  100           // min timer period
+#define FOS_MAX_TIM_PERIOD_US  10000         // max timer period
+
 
 // on-off switch
 typedef enum
@@ -115,6 +118,7 @@ typedef struct
 
 	volatile fos_sw_t swithed_by_tim;    // context switch flag
 	volatile uint32_t thr_dt_us;         // time spent for the running process, microseconds
+	volatile uint32_t time_period_us;    // main timer period, us
 
 } fos_mgv_t;
 

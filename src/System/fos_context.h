@@ -30,6 +30,9 @@
 // подготовить второй аппаратный стек
 void FOS_System_PreparePSP();
 
+// установить период основного таймера в мкс
+void FOS_System_SetMainTimPeriod(uint32_t period_us);
+
 // перейти в режим ядра
 void FOS_System_GoToKernelMode(fos_sw_t swithed_by_tim);
 

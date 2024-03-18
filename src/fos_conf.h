@@ -55,6 +55,9 @@
 #define FOS_STACK_CHECK_PERIOD_MS  100     // stack overflow check period, ms
 #define FOS_HEAP_CHECK_PERIOD_MS   100     // heap check period, ms
 
+#define FOS_STAB_TIME_MS           200     // stabilaze time (magic time for some BlackPill boards)
+#define FOS_SWITCH_CONTEXT_TIME_US 1000    // OS switch context time, us
+
 #endif /* APPLICATION_FOS_FOS_CONF_H_ */
 
 

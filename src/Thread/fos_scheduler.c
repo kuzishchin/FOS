@@ -167,7 +167,7 @@ void FOS_ScheduleDbg(fos_scheduler_t *ptr, uint8_t thr_max_id, uint8_t id, uint3
 
 	for(uint8_t i = 0; i <= thr_max_id; i++)
 	{
-		ptr->dbg.thr_active_per_1s[i] = ptr->var.curr_dt_us[i] / 1000;
+		ptr->dbg.thr_active_per_1s[i] = ptr->var.curr_dt_us[i] / period_ms;    // получем число мк за мс
 		ptr->var.curr_dt_us[i] = 0;
 
 		all_dt_us += ptr->dbg.thr_active_per_1s[i];
