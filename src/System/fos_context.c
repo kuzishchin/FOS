@@ -2,7 +2,7 @@
  * @file      fos_context.c
  * @brief     Low level functional for context switch. Source file.
  * @version   V1.0.01
- * @date      27.02.2024
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -78,6 +78,13 @@ void FOS_System_GoToUserMode()
 {
 	if(fos_mgv.mode != FOS__USER_WORK_MODE)   // если не режим пользователя
 		CallPendSV();                         // переключаемся в него
+}
+
+
+// получить текущий режим работы ОС
+fos_work_mode_t FOS_System_GetWorkMode()
+{
+	return fos_mgv.mode;
 }
 
 

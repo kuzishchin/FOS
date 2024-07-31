@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      user_fos.h
  * @brief     Kernel. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.1.00
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -45,17 +45,26 @@ fos_ret_t USER_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code);
 // завершить текущий поток
 fos_ret_t USER_FOS_Terminate(int32_t terminate_code);
 
+// жив ли поток
+fos_ret_t USER_FOS_IsThreadAlive(user_desc_t desc);
+
 // усыпить текущий поток
 fos_ret_t USER_FOS_Sleep(uint32_t time);
 
 // создать бинарный семафор
 user_desc_t USER_FOS_CreateSemBinary(fos_semb_state_t init_state);
 
+// удалить бинарный семафор
+fos_ret_t USER_FOS_DeleteSemBinary(user_desc_t semb);
+
 // взять бинарный семафор
 fos_ret_t USER_FOS_SemBinaryTake(user_desc_t semb);
 
 // дать бинарный семафор
 fos_ret_t USER_FOS_SemBinaryGive(user_desc_t semb);
+
+// get semaphore binary user descriptor by thread user descriptor
+user_desc_t USER_FOS_GetThreadSembDesc(user_desc_t desc);
 
 // создать объект записи
 // используется в слабом подтягивании

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.c
  * @brief     Abstraction layer for heap. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -29,12 +29,12 @@
 uint8_t kernel_heap_array[FOS_KERNEL_HEAP_SIZE];       // массив для кучи ядра
 uint8_t threads_heap_array[FOS_THREADS_HEAP_SIZE];     // массив для кучи процессов
 
-dmem_heap_t core_heap;        // куча ядра
+dmem_heap_t kernel_heap;      // куча ядра
 dmem_heap_t threads_heap;     // куча процессов
 
 
 // обработчик ошибки кучи ядра
-static void Private_FOS_Heap_CoreHeap_ErrCbk();
+static void Private_FOS_Heap_KernelHeap_ErrCbk();
 
 // обработчик ошибки кучи процессов
 static void Private_FOS_Heap_ThreadsHeap_ErrCbk();
@@ -58,9 +58,9 @@ void FOS_Heap_Init()
 	 */
 	init.array_ptr = kernel_heap_array;
 	init.array_size_byte = FOS_KERNEL_HEAP_SIZE;
-	init.dmem_err_cbk_t  = Private_FOS_Heap_CoreHeap_ErrCbk;
-	DMem_HeapInit(&core_heap, &init);
-	DMem_SetProcPeriod(&core_heap, FOS_HEAP_CHECK_PERIOD_MS);
+	init.dmem_err_cbk_t  = Private_FOS_Heap_KernelHeap_ErrCbk;
+	DMem_HeapInit(&kernel_heap, &init);
+	DMem_SetProcPeriod(&kernel_heap, FOS_HEAP_CHECK_PERIOD_MS);
 
 	/*
 	 * Инициализируем кучу процессов
@@ -76,15 +76,15 @@ void FOS_Heap_Init()
 // обработчик основного цикла
 void FOS_Heap_MainLoopProc()
 {
-	DMem_MainLoopProc(&core_heap);
+	DMem_MainLoopProc(&kernel_heap);
 	DMem_MainLoopProc(&threads_heap);
 }
 
 
 // выделить память в куче ядра
-void* FOS_Heap_CoreHeap_Alloc(uint32_t size_bytes)
+void* FOS_Heap_KernelHeap_Alloc(uint32_t size_bytes)
 {
-	return DMem_Alloc(&core_heap, size_bytes);
+	return DMem_Alloc(&kernel_heap, size_bytes);
 }
 
 
@@ -96,9 +96,9 @@ void* FOS_Heap_ThreadsHeap_Alloc(uint32_t size_bytes)
 
 
 // освободить память в куче ядра
-void FOS_Heap_CoreHeap_Free(void* ptr)
+void FOS_Heap_KernelHeap_Free(void* ptr)
 {
-	DMem_Free(&core_heap, ptr);
+	DMem_Free(&kernel_heap, ptr);
 }
 
 
@@ -113,7 +113,7 @@ void FOS_Heap_ThreadsHeap_Free(void* ptr)
 
 
 // обработчик ошибки кучи ядра
-static void Private_FOS_Heap_CoreHeap_ErrCbk()
+static void Private_FOS_Heap_KernelHeap_ErrCbk()
 {
 	fos_err_t err = {0};
 	err.err_code = FOS_ERROR_KERNEL_HEAP;

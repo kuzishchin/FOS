@@ -1,5 +1,13 @@
 # FOS versions
 
+## FOS v0.14 built 04.04.2024
+
+* Added dynamically allocated threads wich automatically delete after terminating 
+* Added garbage collection for terminated threads 
+* Added function wich deletes binary semaphore 
+* Added Join thread method
+* Added IsAlive thread method 
+
 ## FOS v0.13 built 18.03.24
 
 * Added support of ARM Cortex-M4 core

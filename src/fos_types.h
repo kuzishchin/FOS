@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -39,9 +39,13 @@
 #define FOS_WRONG_SEM_BIN_ID   0xFF          // identifier of a wrong binary semphore descriptor
 #define FOS_WRONG_FWRITER_ID   0xFF          // identifier of a wrong writer object descriptor
 #define FOS_WRONG_USER_DESC    0             // wrong user defined descriptor
+#define FOS_KERNEL_USER_DESC   0x1           // kernel mode user defined descriptor
 
 #define FOS_MIN_TIM_PERIOD_US  100           // min timer period
 #define FOS_MAX_TIM_PERIOD_US  10000         // max timer period
+
+#define FOS_KERNEL_HEAP_ID     0x1           // ID of kernel heap
+#define FOS_THREADS_HEAP_ID    0x2           // ID of threads heap
 
 
 // on-off switch
@@ -80,7 +84,7 @@ typedef enum
 } fos_work_mode_t;
 
 
-// process states
+// thread states
 typedef enum
 {
 	FOS__THREAD_SUSPEND = 0,   // sleeping thread
@@ -91,17 +95,27 @@ typedef enum
 } fos_thread_state_t;
 
 
-// режим работы потока
+// thread modes
 typedef enum
 {
 	FOS__THREAD_NO_INIT = 0,   // not initialized
 	FOS__THREAD_INIT,          // initialized
 	FOS__THREAD_READY_TO_RUN,  // thread is ready for launch
 	FOS__THREAD_RUN,           // thread is running
-	FOS__TERMINATED,           // thread is terminated
-	FOS__THREAD_DEINIT,        // thread is deinitialized
+	FOS__THREAD_TERMINATING,   // thread is being terminated
+	FOS__THREAD_TERMINATED,    // thread is terminated
 
 } fos_thread_mode_t;
+
+
+// thread allocation mode
+typedef enum
+{
+	FOS__THREAD_ALLOC_AUTO = 0, // thread auto allocation mode
+	FOS__THREAD_ALLOC_STATIC,   // thread static allocation
+	FOS__THREAD_ALLOC_DYNAMIC,  // thread dynamic allocation
+
+} fos_thr_alloc_t;
 
 
 // user descriptor
@@ -126,9 +140,11 @@ typedef struct
 // description of the constant thread settings
 typedef struct
 {
-	uint32_t base_sp;          // stack starting address
-	uint32_t ep;               // entry point address
-	uint32_t stack_size;       // stack size
+	uint32_t        base_sp;          // stack starting address
+	uint32_t        ep;               // entry point address
+	uint32_t        stack_size;       // stack size
+	fos_thr_alloc_t alloc_type;       // thread allocation type
+	user_desc_t     semb;             // thread binary semaphore
 
 } fos_thread_cset_t;
 
@@ -162,6 +178,7 @@ typedef struct
 	uint32_t         stack_size;       // thread stack size
 	uint32_t         heap_size;        // thread heap size
 	uint8_t          priotity;         // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	fos_thr_alloc_t  alloc_type;       // thread allocation type
 
 } fos_thread_user_init_t;
 

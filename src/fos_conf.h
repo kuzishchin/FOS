@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_conf.h
  * @brief     Configuration file of OS. Header file.
- * @version   V1.0.01
- * @date      12.03.2024
+ * @version   V1.0.02
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,6 +31,7 @@
 #define FOS_PRIORITY_CNT       8           // maximum priorities count(0 is the highest, 1 - lower than 0, etc.)
 #define FOS_THR_NAME_LEN       16          // thread name length
 #define FOS_MAX_STR_ERR_LEN    32          // maximum length of error descriptive string
+#define FOS_MAX_OBJ_TO_DEL     32          // maximum length turn of objects to delete
 
 #define FOS_USE_FATFS                      // use FatFs
 #define FOS_MAX_FS_DEV         2           // maximum number of devices

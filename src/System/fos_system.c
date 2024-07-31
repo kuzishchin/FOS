@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -70,6 +70,18 @@ fos_ret_t SYS_FOS_SemBinaryGive(user_desc_t semb)
 }
 
 
+// получить дескриптор бинарного семафора потока
+user_desc_t SYS_FOS_GetThreadSembDesc(user_desc_t desc)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)desc;
+
+	system_call(FOS_SYSCALL_FOS_GET_THREAD_SEMB_D, buf);
+
+	return (user_desc_t)buf[0];
+}
+
+
 // создать поток
 user_desc_t SYS_FOS_CreateThread(fos_thread_user_init_t *user_init)
 {
@@ -91,6 +103,18 @@ user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state)
 	system_call(FOS_SYSCALL_FOS_CREATE_SEMB, buf);
 
 	return (user_desc_t)buf[0];
+}
+
+
+// удалить бинарный семафор
+fos_ret_t SYS_FOS_DeleteSemBinary(user_desc_t semb)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)semb;
+
+	system_call(FOS_SYSCALL_FOS_DELETE_SEMB, buf);
+
+	return (fos_ret_t)buf[0];
 }
 
 

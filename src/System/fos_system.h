@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -41,11 +41,17 @@ fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb);
 // дать бинарный свнтофор
 fos_ret_t SYS_FOS_SemBinaryGive(user_desc_t semb);
 
+// получить дескриптор бинарного семафора потока
+user_desc_t SYS_FOS_GetThreadSembDesc(user_desc_t desc);
+
 // создать поток
 user_desc_t SYS_FOS_CreateThread(fos_thread_user_init_t *user_init);
 
 // создать бинарный семафор
 user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state);
+
+// удалить бинарный семафор
+fos_ret_t SYS_FOS_DeleteSemBinary(user_desc_t semb);
 
 // запустить поток с дескриптором
 fos_ret_t SYS_FOS_RunDesc(user_desc_t desc);

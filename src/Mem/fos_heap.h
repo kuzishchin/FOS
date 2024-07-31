@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.h
  * @brief     Abstraction layer for heap. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -33,13 +33,13 @@ void FOS_Heap_Init();
 void FOS_Heap_MainLoopProc();
 
 // выделить память в куче ядра
-void* FOS_Heap_CoreHeap_Alloc(uint32_t size_bytes);
+void* FOS_Heap_KernelHeap_Alloc(uint32_t size_bytes);
 
 // выделить память в куче процессов
 void* FOS_Heap_ThreadsHeap_Alloc(uint32_t size_bytes);
 
 // освободить память в куче ядра
-void FOS_Heap_CoreHeap_Free(void* ptr);
+void FOS_Heap_KernelHeap_Free(void* ptr);
 
 // освободить память в куче процессов
 void FOS_Heap_ThreadsHeap_Free(void* ptr);

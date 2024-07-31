@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.c
  * @brief     Gates for system call handling. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -37,11 +37,17 @@ static void  GATE_FOS_SemBinaryTake(void* data);
 // дать бинарный свнтофор
 static void GATE_FOS_SemBinaryGive(void* data);
 
+// get semaphore binary user descriptor by thread user descriptor
+static void GATE_FOS_GetThreadSembDesc(void* data);
+
 // создать поток
 static void GATE_FOS_CreateThread(void* data);
 
 // создать бинарный семафор
 static void GATE_FOS_CreateSemBinary(void* data);
+
+// удалить бинарный семафор
+static void GATE_FOS_DeleteSemBinary(void* data);
 
 // запустить поток с дескриптором
 static void GATE_FOS_RunDesc(void* data);
@@ -70,9 +76,11 @@ void GATE_FOS_Init()
 
 	system_reg_call(GATE_FOS_SemBinaryTake, FOS_SYSCALL_FOS_SEMB_TAKE);
 	system_reg_call(GATE_FOS_SemBinaryGive, FOS_SYSCALL_FOS_SEMB_GIVE);
+	system_reg_call(GATE_FOS_GetThreadSembDesc, FOS_SYSCALL_FOS_GET_THREAD_SEMB_D);
 
 	system_reg_call(GATE_FOS_CreateThread, FOS_SYSCALL_FOS_CREATE_THREAD);
 	system_reg_call(GATE_FOS_CreateSemBinary, FOS_SYSCALL_FOS_CREATE_SEMB);
+	system_reg_call(GATE_FOS_DeleteSemBinary, FOS_SYSCALL_FOS_DELETE_SEMB);
 
 	system_reg_call(GATE_FOS_RunDesc, FOS_SYSCALL_FOS_THREAD_RUN);
 	system_reg_call(GATE_FOS_Terminate, FOS_SYSCALL_FOS_THREAD_TERMINATE);
@@ -116,6 +124,14 @@ static void GATE_FOS_SemBinaryGive(void* data)
 }
 
 
+// get semaphore binary user descriptor by thread user descriptor
+static void GATE_FOS_GetThreadSembDesc(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)USER_FOS_GetThreadSembDesc((user_desc_t)buf_ptr[1]);
+}
+
+
 // создать поток
 static void GATE_FOS_CreateThread(void* data)
 {
@@ -129,6 +145,14 @@ static void GATE_FOS_CreateSemBinary(void* data)
 {
 	uint32_t *buf_ptr = data;
 	buf_ptr[0] = (uint32_t)USER_FOS_CreateSemBinary((fos_semb_state_t)buf_ptr[1]);
+}
+
+
+// удалить бинарный семафор
+static void GATE_FOS_DeleteSemBinary(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)USER_FOS_DeleteSemBinary((user_desc_t)buf_ptr[1]);
 }
 
 
@@ -178,8 +202,6 @@ static void GATE_File_Unmount(void* data)
 	uint32_t *buf_ptr = data;
 	File_Unmount((uint8_t)buf_ptr[0]);
 }
-
-
 
 
 

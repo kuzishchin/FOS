@@ -2,7 +2,7 @@
  * @file      fos_context.h
  * @brief     Low level functional for context switch. Header file.
  * @version   V1.0.01
- * @date      27.02.2024
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -38,6 +38,9 @@ void FOS_System_GoToKernelMode(fos_sw_t swithed_by_tim);
 
 // перейти в режим пользователя
 void FOS_System_GoToUserMode();
+
+// получить текущий режим работы ОС
+fos_work_mode_t FOS_System_GetWorkMode();
 
 // обработчик прерывания PendSV
 void PendSV_Handler();

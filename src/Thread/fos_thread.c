@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.1.00
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -80,14 +80,15 @@ void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 		return;
 
 	// инициализируем только неинициализированный поток
-	if(p->var.mode != FOS__THREAD_NO_INIT)
-		return;
+//	if(p->var.mode != FOS__THREAD_NO_INIT)
+//		return;
 
 	strncpy(p->name, init->name_ptr, FOS_THR_NAME_LEN);
 	memcpy(&p->cset, &init->cset, sizeof(fos_thread_cset_t));
 	memcpy(&p->set, &init->set, sizeof(fos_thread_set_t));
 	memset(&p->var, 0, sizeof(fos_thread_var_t));
 	memset(&p->dbg, 0, sizeof(fos_thread_dbg_t));
+	p->user_desc = 0;
 
 	p->dbg.low_sp        = p->cset.base_sp;
 	p->dbg.high_sp       = p->cset.base_sp + p->cset.stack_size;
@@ -102,12 +103,31 @@ void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 
 
 // установить пользовательский дескриптор
-fos_ret_t FOS_Thread_SetUserDesc(fos_thread_t *p, user_desc_t user_desc)
+fos_ret_t FOS_Thread_SetUserDesc(fos_thread_t *p, user_desc_t user_desc, user_desc_t parent)
 {
 	if(p == NULL)
 		return FOS__FAIL;
 
-	p->user_desc = user_desc;
+	p->user_desc  = user_desc;
+	p->var.parent = parent;
+
+	switch(p->cset.alloc_type)
+	{
+	case FOS__THREAD_ALLOC_AUTO:
+		if(parent == FOS_KERNEL_USER_DESC)
+			p->var.static_flag = FOS__ENABLE;
+		else
+			p->var.static_flag = FOS__DISABLE;
+	break;
+
+	case FOS__THREAD_ALLOC_STATIC:
+		p->var.static_flag = FOS__ENABLE;
+	break;
+
+	case FOS__THREAD_ALLOC_DYNAMIC:
+		p->var.static_flag = FOS__DISABLE;
+	break;
+	}
 
 	return FOS__OK;
 }
@@ -158,7 +178,7 @@ fos_ret_t FOS_Thread_SetTerminateFlag(fos_thread_t *p, int32_t terminate_code)
 	if((v->mode != FOS__THREAD_READY_TO_RUN) && (v->mode != FOS__THREAD_RUN))
 		return FOS__FAIL;
 
-	v->mode  = FOS__TERMINATED;
+	v->mode  = FOS__THREAD_TERMINATING;
 	v->state = FOS__THREAD_SUSPEND;
 	v->terminate_code = terminate_code;
 

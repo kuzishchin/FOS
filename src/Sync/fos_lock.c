@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.1.00
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -110,6 +110,25 @@ uint8_t FOS_Lock_GetLockedThreadsCount(fos_lock_t *p)
 	if(p == NULL)
 		return 0;
 	return p->lock_thr_cnt;
+}
+
+
+// отсоединить поток от блокиратора
+fos_ret_t FOS_Lock_UnlinkThread(fos_lock_t *p, uint8_t thr_id)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+	for(uint8_t i = 0; i < FOS_MAX_THR_CNT; i++)
+	{
+		if(thr_id == p->lock_thr_is_list[i])
+		{
+			p->lock_thr_is_list[i] = FOS_WRONG_THREAD_ID;
+			return FOS__OK;
+		}
+	}
+
+	return FOS__FAIL;
 }
 
 

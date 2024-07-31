@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svc_id.h
  * @brief     System call IDs. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -36,6 +36,8 @@
 #define FOS_SYSCALL_FOS_ERROR_SET           0x09        // USER_FOS_ErrorSet(fos_err_t *err);
 #define FOS_SYSCALL_FILE_MOUNT              0x0A        // file_err_t File_Mount(uint8_t dev_num);
 #define FOS_SYSCALL_FILE_UNMOUNT            0x0B        // file_err_t File_Unmount(uint8_t dev_num);
+#define FOS_SYSCALL_FOS_DELETE_SEMB         0x0C        // fos_ret_t USER_FOS_DeleteSemBinary(user_desc_t semb);
+#define FOS_SYSCALL_FOS_GET_THREAD_SEMB_D   0x0D        // user_desc_t USER_FOS_GetThreadSembDesc(user_desc_t desc);
 
 
 #endif /* APPLICATION_FOS_FOS_SVC_ID_H_ */

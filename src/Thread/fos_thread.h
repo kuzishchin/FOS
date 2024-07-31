@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.1.00
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -54,8 +54,10 @@ typedef struct
 	volatile uint32_t wake_up_time;      // время пробуждения потока (из соятояния BLOCKED в READY)
 	volatile uint32_t lock_flag;         // флаг блокировки потока
 	volatile int32_t  terminate_code;    // код завершения потока
+	volatile user_desc_t parent;         // дескриптор родидельского потока
 	volatile fos_thread_state_t state;   // состояние потока
 	volatile fos_thread_mode_t  mode;    // режим потока
+	volatile fos_sw_t static_flag;       // static thread flag
 
 } fos_thread_var_t;
 
@@ -81,7 +83,7 @@ typedef fos_thread_t* fos_thread_ptr;
 void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init);
 
 // установить пользовательский дескриптор
-fos_ret_t FOS_Thread_SetUserDesc(fos_thread_t *p, user_desc_t user_desc);
+fos_ret_t FOS_Thread_SetUserDesc(fos_thread_t *p, user_desc_t user_desc, user_desc_t parent);
 
 // установка флага регистриции потока
 fos_ret_t FOS_Thread_SetRegFlag(fos_thread_t *p);

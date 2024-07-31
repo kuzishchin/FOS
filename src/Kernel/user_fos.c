@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      user_fos.c
  * @brief     Kernel. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.1.00
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -62,6 +62,9 @@ static fos_ret_t USER_FOS_FWriterInitAndReg(fwriter_t *fw, file_init_t *init);
 // бработчик callback ошибки стека
 static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
 
+// OS garbage collection
+static void USER_FOS_GarbageCollection();
+
 
 // прототип перехватчика ошибок
 __weak void SYS_FOS_ErrorSet(fos_err_t *err)
@@ -97,6 +100,7 @@ void USER_FOS_Init()
 	user_init.priotity = FOS_PRIORITY_CNT - 1;		// IDDLE
 	user_init.stack_size = STACK_SIZE_IDDLE_THR;
 	user_init.heap_size  = STACK_SIZE_IDDLE_THR;    // кучу размером со стек
+	user_init.alloc_type = FOS__THREAD_ALLOC_AUTO;
 	user_init.name_ptr = "Iddle\0";
 	thr = USER_FOS_CreateThread(&user_init);
 	USER_FOS_RunDesc(thr);
@@ -107,6 +111,7 @@ void USER_FOS_Init()
 	user_init.priotity = FOS_PRIORITY_CNT - 2;		// VERY LOW
 	user_init.stack_size = STACK_SIZE_FPROC_THR;
 	user_init.heap_size  = FOS_DEF_THR_HEAP_SIZE;
+	user_init.alloc_type = FOS__THREAD_ALLOC_AUTO;
 	user_init.name_ptr = "FProc\0";
 	thr = USER_FOS_CreateThread(&user_init);
 	USER_FOS_RunDesc(thr);
@@ -144,6 +149,18 @@ user_desc_t USER_FOS_CreateThread(fos_thread_user_init_t *user_init)
 		return FOS_WRONG_USER_DESC;
 	}
 
+
+	/*
+	 * Создаём бирнарный семафор потока
+	 */
+	user_desc_t semb = USER_FOS_CreateSemBinary(FOS_SEMB_STATE__LOCK);
+	if(semb == FOS_WRONG_USER_DESC)
+	{
+		FOS_Heap_KernelHeap_Free(thr_ptr);
+		FOS_Heap_ThreadsHeap_Free(thread_mem_ptr);
+		return FOS_WRONG_USER_DESC;
+	}
+
 	/*
 	 * Инициализируем поток
 	 */
@@ -152,6 +169,8 @@ user_desc_t USER_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	init.cset.base_sp = (uint32_t)thread_mem_ptr;
 	init.cset.stack_size = user_init->stack_size;
 	init.cset.ep = (uint32_t)user_init->user_thread_ep;
+	init.cset.alloc_type = user_init->alloc_type;
+	init.cset.semb = semb;
 	init.name_ptr = user_init->name_ptr;
 	USER_FOS_ThreadInit(thr_ptr, &init);
 
@@ -161,8 +180,9 @@ user_desc_t USER_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	if(USER_FOS_ThreadReg(thr_ptr) != FOS__OK)
 	{
 		// если ошибка регистрации, освобождаем выделенную память
-		FOS_Heap_CoreHeap_Free(thr_ptr);
+		FOS_Heap_KernelHeap_Free(thr_ptr);
 		FOS_Heap_ThreadsHeap_Free(thread_mem_ptr);
+		USER_FOS_DeleteSemBinary(semb);
 		return FOS_WRONG_USER_DESC;
 	}
 
@@ -191,6 +211,15 @@ fos_ret_t USER_FOS_Terminate(int32_t terminate_code)
 }
 
 
+// жив ли поток
+fos_ret_t USER_FOS_IsThreadAlive(user_desc_t desc)
+{
+	if(FOS_GetUdThreadId(&fos, desc) == FOS_WRONG_THREAD_ID)
+		return FOS__FAIL;
+	return FOS__OK;
+}
+
+
 // усыпить текущий поток
 fos_ret_t USER_FOS_Sleep(uint32_t time)
 {
@@ -209,11 +238,18 @@ user_desc_t USER_FOS_CreateSemBinary(fos_semb_state_t init_state)
 	if(USER_FOS_SemBinaryInitAndReg(sb_ptr, init_state) != FOS__OK)
 	{
 		// обработка ошибки
-		FOS_Heap_CoreHeap_Free(sb_ptr);
+		FOS_Heap_KernelHeap_Free(sb_ptr);
 		return FOS_WRONG_USER_DESC;
 	}
 
 	return sb_ptr->user_desc;
+}
+
+
+// удалить бинарный семафор
+fos_ret_t USER_FOS_DeleteSemBinary(user_desc_t semb)
+{
+	return FOS_SemBinaryDelete(&fos, semb);
 }
 
 
@@ -228,6 +264,13 @@ fos_ret_t USER_FOS_SemBinaryTake(user_desc_t semb)
 fos_ret_t USER_FOS_SemBinaryGive(user_desc_t semb)
 {
 	return FOS_SemBinaryGive(&fos, semb);
+}
+
+
+// get semaphore binary user descriptor by thread user descriptor
+user_desc_t USER_FOS_GetThreadSembDesc(user_desc_t desc)
+{
+	return FOS_GetThreadSembId(&fos, FOS_GetUdThreadId(&fos, desc));
 }
 
 
@@ -270,7 +313,7 @@ fwriter_t* USER_CreateFWriter(uint16_t write_buf_len)
 	if(USER_FOS_FWriterInitAndReg(fwriter_ptr, &file_init) != FOS__OK)
 	{
 		// если ошибка регистрации, освобождаем выделенную память
-		FOS_Heap_CoreHeap_Free(fwriter_ptr);
+		FOS_Heap_KernelHeap_Free(fwriter_ptr);
 		FOS_Heap_ThreadsHeap_Free(write_buf_ptr);
 		return NULL;
 	}
@@ -291,6 +334,7 @@ void USER_FOS_ErrorSet(fos_err_t *err)
 // обработчик основного цикла
 void USER_FOS_MainLoopProc()
 {
+	USER_FOS_GarbageCollection();              // сборка мусора
 	FOS_Heap_MainLoopProc();                   // отладка куч
 	FOS_MainLoopProc(&fos);                    // переходим к ядру
 }
@@ -372,21 +416,21 @@ static void FProc_Main_thr()
 // создать объект потока
 static fos_thread_t* Private_USER_FOS_CreateThreadObj()
 {
-	return (fos_thread_t*)FOS_Heap_CoreHeap_Alloc(sizeof(fos_thread_t));
+	return (fos_thread_t*)FOS_Heap_KernelHeap_Alloc(sizeof(fos_thread_t));
 }
 
 
 // создать объект семафора
 static fos_semaphore_binary_t* Private_USER_FOS_CreateSemBinaryObj()
 {
-	return (fos_semaphore_binary_t*)FOS_Heap_CoreHeap_Alloc(sizeof(fos_semaphore_binary_t));
+	return (fos_semaphore_binary_t*)FOS_Heap_KernelHeap_Alloc(sizeof(fos_semaphore_binary_t));
 }
 
 
 // создать объект записи
 static fwriter_t* Private_USER_FOS_CreateFWriterObj()
 {
-	return (fwriter_t*)FOS_Heap_CoreHeap_Alloc(sizeof(fwriter_t));
+	return (fwriter_t*)FOS_Heap_KernelHeap_Alloc(sizeof(fwriter_t));
 }
 
 
@@ -408,7 +452,7 @@ static fos_ret_t USER_FOS_ThreadReg(fos_thread_t *thr)
 static fos_ret_t USER_FOS_SemBinaryInitAndReg(fos_semaphore_binary_t *semb, fos_semb_state_t init_state)
 {
 	FOS_SemaphoreBinary_Init(semb, init_state);
-	return FOS_SemaphoreBinaryReg(&fos, semb);
+	return FOS_SemBinaryReg(&fos, semb);
 }
 
 
@@ -427,6 +471,41 @@ static void FOS_Proc_StackErrorCallback(user_desc_t user_desc)
 	err.err_code = FOS_ERROR_KERNEL_STACK;
 	err.ext_str_ptr = "Kernel stack overflow\0";
 	SYS_FOS_ErrorSet(&err);
+}
+
+
+// OS garbage collection
+static void USER_FOS_GarbageCollection()
+{
+	uint32_t adr;
+	uint8_t type;
+
+	for(uint8_t i = 0; i < FOS_MAX_OBJ_TO_DEL; i++)
+	{
+		if(fos.var.obj_to_del_cnt == 0)
+			return;
+
+		adr  = fos.var.obj_to_del[i].adr;
+		type = fos.var.obj_to_del[i].heap_type;
+
+		if(adr)
+		{
+			fos.var.obj_to_del[i].adr = 0;
+			fos.var.obj_to_del[i].heap_type = 0;
+			fos.var.obj_to_del_cnt--;
+
+			switch(type)
+			{
+			case FOS_KERNEL_HEAP_ID:
+				FOS_Heap_KernelHeap_Free((void*)adr);
+			break;
+
+			case FOS_THREADS_HEAP_ID:
+				FOS_Heap_ThreadsHeap_Free((void*)adr);
+			break;
+			}
+		}
+	}
 }
 
 

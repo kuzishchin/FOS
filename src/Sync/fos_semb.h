@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_semb.h
  * @brief     Binary named strong semaphore. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.1.00
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -37,6 +37,12 @@ fos_ret_t FOS_SemaphoreBinary_Take(fos_semaphore_binary_t *p, uint8_t thr_id);
 
 // дать
 fos_ret_t FOS_SemaphoreBinary_Give(fos_semaphore_binary_t *p);
+
+// отсоединить поток
+fos_ret_t FOS_SemaphoreBinary_UnlinkThread(fos_semaphore_binary_t *p, uint8_t thr_id);
+
+// освободить все потоки
+fos_ret_t FOS_SemaphoreBinary_UnlockAll(fos_semaphore_binary_t *p);
 
 
 

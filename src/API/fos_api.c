@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.c
  * @brief     API of OS for user applications. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      04.04.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -29,6 +29,13 @@
 __weak fwriter_t* USER_CreateFWriter(uint16_t write_buf_len)
 {
 	return NULL;
+}
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+__weak fos_ret_t USER_FOS_IsThreadAlive(user_desc_t desc)
+{
+	return FOS__FAIL;
 }
 
 
@@ -96,7 +103,7 @@ user_desc_t API_FOS_CreateThread(fos_thread_user_init_t *user_init)
 
 
 /*
- * Create a new thread with default heap and stack settings
+ * Create a new thread with default heap, stack settings and auto allocation
  * Thread-safe, call from the thread or from the main loop
  * Do not call from interrupts
  * name_ptr - name of the thread
@@ -110,10 +117,35 @@ user_desc_t API_FOS_CreateThreadDef(char* name_ptr, user_thread_ep_t ep, uint8_t
 {
 	fos_thread_user_init_t user_init = {0};
 	user_init.user_thread_ep = ep;
-	user_init.priotity   = priotity;		                       // LOW
+	user_init.priotity   = priotity;
 	user_init.stack_size = FOS_DEF_THR_STACK_SIZE;
 	user_init.heap_size  = FOS_DEF_THR_HEAP_SIZE;
 	user_init.name_ptr   = name_ptr;
+	user_init.alloc_type = FOS__THREAD_ALLOC_AUTO;
+	return API_FOS_CreateThread(&user_init);
+}
+
+
+/*
+ * Create a new thread with default heap, stack settings and dynamic allocation
+ * Thread-safe, call from the thread or from the main loop
+ * Do not call from interrupts
+ * name_ptr - name of the thread
+ * ep       - entry point
+ * priotity - priority of the thread
+ * Returns the user descriptor of created thread or 'FOS_WRONG_USER_DESC' in case of an error
+ *
+ * See def heap and stack size in fos_conf.h
+ */
+user_desc_t API_FOS_CreateThreadDyn(char* name_ptr, user_thread_ep_t ep, uint8_t priotity)
+{
+	fos_thread_user_init_t user_init = {0};
+	user_init.user_thread_ep = ep;
+	user_init.priotity   = priotity;
+	user_init.stack_size = FOS_DEF_THR_STACK_SIZE;
+	user_init.heap_size  = FOS_DEF_THR_HEAP_SIZE;
+	user_init.name_ptr   = name_ptr;
+	user_init.alloc_type = FOS__THREAD_ALLOC_DYNAMIC;
 	return API_FOS_CreateThread(&user_init);
 }
 
@@ -128,6 +160,19 @@ user_desc_t API_FOS_CreateThreadDef(char* name_ptr, user_thread_ep_t ep, uint8_t
 user_desc_t API_FOS_CreateSemBinary(fos_semb_state_t init_state)
 {
 	return SYS_FOS_CreateSemBinary(init_state);
+}
+
+
+/*
+ * Delete a binaty semaphore
+ * Thread-safe, call from the thread or from the main loop
+ * Do not call from interrupts
+ * semb - a binaty semaphore to be deleted
+ * Returns execution status
+ */
+fos_ret_t API_FOS_DeleteSemBinary(user_desc_t semb)
+{
+	return SYS_FOS_DeleteSemBinary(semb);
 }
 
 
@@ -168,6 +213,40 @@ fos_ret_t API_FOS_Terminate(uint8_t terminate_code)
 fos_ret_t API_FOS_TerminateDesc(user_desc_t desc, uint8_t terminate_code)
 {
 	return SYS_FOS_TerminateDesc(desc, -terminate_code);
+}
+
+
+/*
+ * This method check if the thread is alive
+ * Thread-safe, call from the thread or from the main loop
+ * Do not call from interrupts
+ * desc - descriptor of the checked thread
+ * Returns thread status
+ */
+fos_ret_t API_FOS_IsThreadAlive(user_desc_t desc)
+{
+	fos_ret_t ret;
+	uint32_t s;
+
+	ENTER_CRITICAL(s);
+	ret = USER_FOS_IsThreadAlive(desc);
+	LEAVE_CRITICAL(s);
+
+	return ret;
+}
+
+
+/*
+ * Blocking current thread till desc thread is terminated
+ * Thread-safe, call from the thread
+ * Do not call from outside the threads
+ * desc - descriptor to the being terminated thread
+ * Returns execution status
+ */
+fos_ret_t API_FOS_Join(user_desc_t desc)
+{
+	user_desc_t semb = SYS_FOS_GetThreadSembDesc(desc);
+	return SYS_FOS_SemBinaryTake(semb);
 }
 
 
