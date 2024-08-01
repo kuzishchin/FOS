@@ -51,7 +51,7 @@
 #define STACK_SIZE_IDDLE_THR   0x400       // iddle thread stack size
 #define STACK_SIZE_FPROC_THR   0x2000      // file proc thread stack size
 
-#define FOS_ERROR_STACK_WML    40.0f       // maximum stack fill factor value %, (error event is triggered if exceeded)
+#define FOS_ERROR_STACK_WML    80.0f       // maximum stack fill factor value %, (error event is triggered if exceeded)
 
 #define FOS_STACK_CHECK_PERIOD_MS  100     // stack overflow check period, ms
 #define FOS_HEAP_CHECK_PERIOD_MS   100     // heap check period, ms
