@@ -1,5 +1,14 @@
 # FOS versions
 
+## FOS v1.0.2 build 03 06.02.2026 api-1
+* Added release binary semaphore for ISR
+* Added timeout event for binary semaphore
+* Add version OS in the string
+* Fixed some bugs
+* Added the support of GCC compiller with optimization
+* Added counting semaphore with functionality as binary semaphore
+* Added queue for 32 bit data pithes
+
 ## FOS v0.14 built 04.04.2024
 
 * Added dynamically allocated threads wich automatically delete after terminating 

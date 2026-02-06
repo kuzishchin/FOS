@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_context.h
  * @brief     Low level functional for context switch. Header file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.0.02
+ * @date      15.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

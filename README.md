@@ -14,6 +14,7 @@ Current version features support for ARM Cortex-M4 and Cortex-M7 cores.
 7. Sync - objects for thread synchronization
 8. System - low level OS functions
 9. Thread - system threads and scheduler
+10. Data - objects for transferring data between threads 
 
 The file `fos_conf.h ` in the root folder contains all OS configuration.
 

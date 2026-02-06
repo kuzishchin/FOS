@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      file_sys.h
  * @brief     Abstraction layer between the file system and OS. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svcall.c
  * @brief     Low level functional for system calls. Source file.
- * @version   V1.0.03
- * @date      11.03.2024
+ * @version   V1.0.05
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -23,7 +23,7 @@
 
 #include "System/fos_svcall.h"
 
-sys_call_t sys_call;                // системные вызовы
+static sys_call_t sys_call;                // системные вызовы
 
 
 // зарегистировать системную функцию
@@ -42,18 +42,29 @@ void system_reg_call(svcall_t func, uint16_t func_id)
 
 
 // систенмый вызов функции с номером func_id и аргументами args
-void system_call(uint32_t func_id, void *args)
+__attribute__((optimize("O0"))) void system_call(uint32_t func_id, void *args)
 {
+	/*
 	__asm volatile("push {%0}" ::"r"(func_id));
 	__asm volatile("push {%0}" ::"r"(args));
 	__asm volatile("svc 0");
+	__asm volatile("pop {%0}" ::"r"(func_id));
+	__asm volatile("pop {%0}" ::"r"(func_id));
+	*/
+	__asm volatile(
+			"push {%0} \n"
+			"push {%1} \n"
+			"svc 0"
+			:
+			:"r"(func_id), "r"(args)
+	);
 	__asm volatile("pop {%0}" ::"r"(func_id));
 	__asm volatile("pop {%0}" ::"r"(func_id));
 }
 
 
 // обработчик прерывания системного вызова
-void SVC_Handler(void)
+__attribute__((optimize("O0"))) void SVC_Handler(void)
 {
 #if defined(IAR_COMPILER)
 

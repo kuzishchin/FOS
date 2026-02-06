@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_context.c
  * @brief     Low level functional for context switch. Source file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.0.02
+ * @date      15.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -40,7 +40,7 @@ void FOS_System_PreparePSP()
 		return;
 
 	core_sp = (uint32_t)kernel_stack;
-	core_sp += FOS_KERNEL_STACK_SIZE - 1;
+	core_sp += FOS_KERNEL_STACK_SIZE - 100;
 	core_sp /= 8;
 	core_sp *= 8;
 
@@ -89,7 +89,7 @@ fos_work_mode_t FOS_System_GetWorkMode()
 
 
 // обработчик прерывания PendSV
-void PendSV_Handler()
+__attribute__((optimize("O0"))) void PendSV_Handler()
 {
 	/*
 	 * Входим в критическую секцию кода

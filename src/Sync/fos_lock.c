@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.2.01
+ * @date      23.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -78,12 +78,15 @@ fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id)
 
 	FOS_Lock_LockThread(thr_id);    // блокируем поток
 
+//	if(p->timeout_flag)             // индикация что был таймаут
+//		return FOS__FAIL;
+
 	return FOS__OK;
 }
 
 
 // отдать блокировку; разблокирует заблокированные потоки в порядке очереди их блокировки
-fos_ret_t FOS_Lock_Give(fos_lock_t *p)
+fos_ret_t FOS_Lock_Give(fos_lock_t *p, fos_sw_t timeout_flag)
 {
 	if(p == NULL)
 		return FOS__FAIL;
@@ -95,6 +98,11 @@ fos_ret_t FOS_Lock_Give(fos_lock_t *p)
 		p->first_lock_thr = Private_FOS_Lock_IncInd(p->first_lock_thr);  // инкремент индекса первого заблокированного потока
 
 		p->lock_thr_cnt--;                // декремент счётчика заблокированных потоков
+
+		// обработка таймаута
+//		p->timeout_flag = timeout_flag;
+		if(timeout_flag)
+			p->timeout_cnt++;
 
 		FOS_Lock_UnlockThread(thr_id);    // разблокируем поток
 

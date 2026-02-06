@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.c
  * @brief     Abstraction layer for heap. Source file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.0.02
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,8 +26,8 @@
 #include "DMem/dmem.h"
 
 
-uint8_t kernel_heap_array[FOS_KERNEL_HEAP_SIZE];       // массив для кучи ядра
-uint8_t threads_heap_array[FOS_THREADS_HEAP_SIZE];     // массив для кучи процессов
+static uint8_t kernel_heap_array[FOS_KERNEL_HEAP_SIZE];       // массив для кучи ядра
+static uint8_t threads_heap_array[FOS_THREADS_HEAP_SIZE];     // массив для кучи процессов
 
 dmem_heap_t kernel_heap;      // куча ядра
 dmem_heap_t threads_heap;     // куча процессов

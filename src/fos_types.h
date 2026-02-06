@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.3.02
+ * @date      02.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,12 +31,15 @@
 
 
 #define FOS_SUSPEND_BLOCKED_ID 250           // identifier of suspended and blocked tasks
+#define FOS_SPECIAL_ID         250           // special identifier
 #define FOS_EMPTY_ID           255           // identifier of empty (non present) task
 #define FOS_INF_TIME           0xFFFFFFFF    // infinite time
 #define FOS_USER_LOCK_MASK     0xFFFF        // user defined mask for blocking
 #define FOS_LOCK_OBJ_FLAG      0x10000       // blocking flag for blocker object
 #define FOS_WRONG_THREAD_ID    0xFF          // identifier of a wrong thread descriptor
 #define FOS_WRONG_SEM_BIN_ID   0xFF          // identifier of a wrong binary semphore descriptor
+#define FOS_WRONG_SEM_CNT_ID   0xFF          // identifier of a wrong counting semphore descriptor
+#define FOS_WRONG_QUE_32_ID    0xFF          // identifier of a wrong queue32 descriptor
 #define FOS_WRONG_FWRITER_ID   0xFF          // identifier of a wrong writer object descriptor
 #define FOS_WRONG_USER_DESC    0             // wrong user defined descriptor
 #define FOS_KERNEL_USER_DESC   0x1           // kernel mode user defined descriptor
@@ -73,6 +76,24 @@ typedef enum
 	FOS_SEMB_STATE__UNLOCK,         // unlocked
 
 } fos_semb_state_t;
+
+
+// queue mode
+typedef enum
+{
+	FOS_QUEUE_MODE__POLL_ONLY = 0,
+	FOS_QUEUE_MODE__POLL_AND_BLOCK,
+
+} fos_queue_mode_t;
+
+
+// queue sw
+typedef enum
+{
+	FOS_QUEUE_SW__POLL = 0,
+	FOS_QUEUE_SW__BLOCK,
+
+} fos_queue_sw_t;
 
 
 // OS work mode
@@ -195,20 +216,47 @@ typedef struct
 	volatile uint8_t lock_thr_cnt;                         // blocked threads count
 	volatile uint8_t lock_thr_is_list[FOS_MAX_THR_CNT];    // identifier list of the blocked threads
 
+//	volatile fos_sw_t timeout_flag;                        // timeout flag
+	volatile uint32_t timeout_cnt;                         // timeout counter
+
 } fos_lock_t;
+
+
+// timeout struct
+typedef struct
+{
+	volatile fos_sw_t timeout_flag;    // timeout flag
+	volatile uint32_t timeout_ms;      // semaphore timeout in ms
+	volatile uint32_t timeout_ts_ms;   // timestamp of semaphore timeout in ms
+
+} fos_lock_timeout_t;
 
 
 // binary semaphore
 typedef struct
 {
 	volatile fos_semb_state_t state;   // semaphore state
+	fos_lock_timeout_t timeout;        // timeout
 	fos_lock_t  fos_lock;              // blocker object
 	user_desc_t user_desc;             // used defined semaphore descriptor
 
 } fos_semaphore_binary_t;
 
 
+// counting semaphore
+typedef struct
+{
+	uint32_t max_cnt;                  // max count
+	volatile uint32_t cnt;             // semaphore counter
+	fos_lock_timeout_t timeout;        // timeout
+	fos_lock_t  fos_lock;              // blocker object
+	user_desc_t user_desc;             // used defined semaphore descriptor
+
+} fos_semaphore_cnt_t;
+
+
 typedef fos_semaphore_binary_t* fos_semaphore_binary_ptr;
+typedef fos_semaphore_cnt_t*    fos_semaphore_cnt_ptr;
 
 
 // error description

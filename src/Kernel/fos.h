@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.4.03
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,7 +27,9 @@
 #include "System/fos_context.h"
 #include "Thread/fos_scheduler.h"
 #include "Sync/fos_semb.h"
+#include "Sync/fos_sem.h"
 #include "File/fwriter.h"
+#include "Data/fos_queue32.h"
 
 /*
  * A thread is described by index and descriptor
@@ -57,6 +59,12 @@ typedef struct
 
 	volatile uint8_t                  semb_max_ind;                    // maximum index of registered binary semaphore
 	volatile fos_semaphore_binary_ptr semb_desc_list[FOS_SEM_BIN_CNT]; // list of binary semaphore descriptors
+
+	volatile uint8_t               semc_max_ind;                         // maximum index of registered counting semaphore
+	volatile fos_semaphore_cnt_ptr semc_desc_list[FOS_SEM_COUNTING_CNT]; // list of counting semaphore descriptors
+
+	volatile uint8_t         queue32_max_ind;                         // maximum index of registered queue32
+	volatile fos_queue32_ptr queue32_desc_list[FOS_SEM_QUEUE_32_CNT]; // list of queue32 descriptors
 
 	volatile uint8_t     fwriter_max_id;                               // maximum index of registered writer object
 	volatile fwriter_ptr fwriter_desc_list[FOS_FWRITER_CNT];           // list of writer object descriptors
@@ -108,7 +116,7 @@ fos_ret_t FOS_Terminate(fos_t *p, int32_t terminate_code);
 void FOS_Yield();
 
 //send thread with identifier to sleep
-fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time);
+//fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time);
 
 // send current thread to sleep
 fos_ret_t FOS_Sleep(fos_t *p, uint32_t time);
@@ -128,8 +136,15 @@ fos_ret_t FOS_SemBinaryDelete(fos_t *p, user_desc_t semb);
 // acquire binary semaphore
 fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb);
 
+// get taking status of binary semaphore
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t FOS_SemBinaryTakeStat(fos_t *p, user_desc_t semb);
+
 // release binary semaphore
 fos_ret_t FOS_SemBinaryGive(fos_t *p, user_desc_t semb);
+
+// set binary semaphore timeout
+fos_ret_t FOS_SemBinarySetTimeout(fos_t *p, user_desc_t semb, uint32_t timeout_ms);
 
 // get writer object descriptor by its identifier
 fwriter_t* FOS_GetFWriterDesc(fos_t *p, uint8_t id);
@@ -139,6 +154,49 @@ fos_ret_t FOS_FWriterReg(fos_t *p, fwriter_t *fw);
 
 // identify error
 void FOS_ErrorSet(fos_t *p, fos_err_t *err);
+
+// register counting semaphore
+fos_ret_t FOS_SemCntReg(fos_t *p, fos_semaphore_cnt_t *semc);
+
+// delete counting semaphore
+fos_ret_t FOS_SemCntDelete(fos_t *p, user_desc_t semc);
+
+// acquire counting semaphore
+fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc);
+
+// get status of acquire counting semaphore
+fos_ret_t FOS_SemCntTakeStat(fos_t *p, user_desc_t semc);
+
+// release counting semaphore
+fos_ret_t FOS_SemCntGive(fos_t *p, user_desc_t semc);
+
+// set counting semaphore timeout
+fos_ret_t FOS_SemCntSetTimeout(fos_t *p, user_desc_t semc, uint32_t timeout_ms);
+
+// register queue32
+fos_ret_t FOS_Queue32Reg(fos_t *p, fos_queue32_t *que);
+
+// join counting semaphore to queue32
+fos_ret_t FOS_Queue32JoinToSemCnt(fos_t *p, fos_queue32_t *que, user_desc_t semc);
+
+// delete queue32
+fos_ret_t FOS_Queue32Delete(fos_t *p, user_desc_t que);
+
+// ask data
+fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, fos_queue_sw_t blocking_mode_sw);
+
+// read data
+// one must ask data before read every times
+fos_ret_t FOS_Queue32ReadData(fos_t *p, user_desc_t que, uint32_t* data_ptr);
+
+// write data
+fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data);
+
+// get the system stack debug info
+fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p);
+
+// get the scheduler debug info
+fos_scheduler_dbg_t* FOS_GetSchedulerDbgInfo(fos_t *p);
 
 // main loop handler
 void FOS_MainLoopProc(fos_t *p);

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      file_sys.c
  * @brief     Abstraction layer between the file system and OS. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,7 +27,7 @@
 
 
 #ifdef FOS_USE_FATFS
-FATFS fatfs[FOS_MAX_FS_DEV];
+static FATFS fatfs[FOS_MAX_FS_DEV];
 #endif
 
 static fmount_state_t fmount_states[FOS_MAX_FS_DEV];    // состояния устройств

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svc_id.h
  * @brief     System call IDs. Header file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.2.02
+ * @date      23.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -38,9 +38,30 @@
 #define FOS_SYSCALL_FILE_UNMOUNT            0x0B        // file_err_t File_Unmount(uint8_t dev_num);
 #define FOS_SYSCALL_FOS_DELETE_SEMB         0x0C        // fos_ret_t USER_FOS_DeleteSemBinary(user_desc_t semb);
 #define FOS_SYSCALL_FOS_GET_THREAD_SEMB_D   0x0D        // user_desc_t USER_FOS_GetThreadSembDesc(user_desc_t desc);
+#define FOS_SYSCALL_FOS_SEMB_SET_TIMEOUT    0x0E        // fos_ret_t USER_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_SEMC_TAKE           0x0F        // fos_ret_t USER_FOS_SemCntTake(user_desc_t semc);
+#define FOS_SYSCALL_FOS_SEMC_GIVE           0x10        // fos_ret_t USER_FOS_SemCntGive(user_desc_t semc);
+#define FOS_SYSCALL_FOS_CREATE_SEMC         0x11        // user_desc_t USER_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
+#define FOS_SYSCALL_FOS_DELETE_SEMC         0x12        // fos_ret_t USER_FOS_DeleteSemCnt(user_desc_t semc);
+#define FOS_SYSCALL_FOS_SEMC_SET_TIMEOUT    0x13        // fos_ret_t USER_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_QUEUE_32_CREATE     0x14        // user_desc_t USER_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_QUEUE_32_DELETE     0x15        // fos_ret_t USER_FOS_DeleteQueue32(user_desc_t que);
+#define FOS_SYSCALL_FOS_QUEUE_32_READ       0x16        // fos_ret_t USER_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr, fos_queue_sw_t blocking_mode_sw);
+#define FOS_SYSCALL_FOS_QUEUE_32_WRITE      0x17        // fos_ret_t USER_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
+#define FOS_SYSCALL_FOS_QUEUE_32_ASK        0x18        // fos_ret_t USER_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw);
+#define FOS_SYSCALL_FOS_SEMB_TAKE_STAT      0x19        // fos_ret_t USER_FOS_SemBinaryTakeStat(user_desc_t semb);
+#define FOS_SYSCALL_FOS_SEMC_TAKE_STAT      0x1A        // fos_ret_t USER_FOS_SemCntTakeStat(user_desc_t semc);
 
 
 #endif /* APPLICATION_FOS_FOS_SVC_ID_H_ */
+
+
+
+
+
+
+
+
 
 
 

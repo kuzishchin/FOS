@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      user_fos.c
  * @brief     Kernel. Source file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.3.03
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,11 +26,11 @@
 #include "Platform/sl_platform.h"
 
 
-fos_t fos;                                                 // ОС
+static fos_t fos;                                          // ОС
 
 extern uint32_t kernel_stack[FOS_KERNEL_STACK_SIZE / 4];   // стек ядра
 
-
+static char *FOS_ver = "FOS version 1.0.2 build 03 06.02.2026 api-1\r\n\0";  // версия FOS
 
 // основной цикл потока бездействия системы
 static void Iddle_Main_thr();
@@ -44,8 +44,14 @@ static fos_thread_t* Private_USER_FOS_CreateThreadObj();
 // создать объект семафора
 static fos_semaphore_binary_t* Private_USER_FOS_CreateSemBinaryObj();
 
+// создать объект семафора
+static fos_semaphore_cnt_t* Private_USER_FOS_CreateSemCntObj();
+
 // создать объект записи
 static fwriter_t* Private_USER_FOS_CreateFWriterObj();
+
+// создать объект очереди
+static fos_queue32_t* Private_USER_FOS_CreateQueue32Obj();
 
 // инициализация потока
 static void USER_FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init);
@@ -56,8 +62,14 @@ static fos_ret_t USER_FOS_ThreadReg(fos_thread_t *thr);
 // инициализация и регистрация семафора
 static fos_ret_t USER_FOS_SemBinaryInitAndReg(fos_semaphore_binary_t *semb, fos_semb_state_t init_state);
 
+// инициализация и регистрация семафора
+static fos_ret_t USER_FOS_SemCntInitAndReg(fos_semaphore_cnt_t *semc, uint32_t max_cnt, uint32_t init_cnt);
+
 // инициализация и регистрация объекта записи
 static fos_ret_t USER_FOS_FWriterInitAndReg(fwriter_t *fw, file_init_t *init);
+
+// инициализация и регистрация очереди
+static fos_ret_t USER_FOS_Queue32InitAndReg(fos_queue32_t *que, uint32_t* buf_ptr, uint16_t buf_size, user_desc_t semc);
 
 // бработчик callback ошибки стека
 static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
@@ -70,6 +82,13 @@ static void USER_FOS_GarbageCollection();
 __weak void SYS_FOS_ErrorSet(fos_err_t *err)
 {
 
+}
+
+
+// get FOS version
+char* FOS_GetVersion()
+{
+	return FOS_ver;
 }
 
 
@@ -260,10 +279,25 @@ fos_ret_t USER_FOS_SemBinaryTake(user_desc_t semb)
 }
 
 
+// get taking status of binary semaphore
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t USER_FOS_SemBinaryTakeStat(user_desc_t semb)
+{
+	return FOS_SemBinaryTakeStat(&fos, semb);
+}
+
+
 // дать бинарный свнтофор
 fos_ret_t USER_FOS_SemBinaryGive(user_desc_t semb)
 {
 	return FOS_SemBinaryGive(&fos, semb);
+}
+
+
+// set binary semaphore timeout
+fos_ret_t USER_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms)
+{
+	return FOS_SemBinarySetTimeout(&fos, semb, timeout_ms);
 }
 
 
@@ -331,6 +365,136 @@ void USER_FOS_ErrorSet(fos_err_t *err)
 }
 
 
+// создать счётный семафор
+user_desc_t USER_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt)
+{
+	fos_semaphore_cnt_t* sc_ptr = Private_USER_FOS_CreateSemCntObj();
+	if(sc_ptr == NULL)
+		return FOS_WRONG_USER_DESC;
+
+	// инициализируем и регистрируем
+	if(USER_FOS_SemCntInitAndReg(sc_ptr, max_cnt, init_cnt) != FOS__OK)
+	{
+		// обработка ошибки
+		FOS_Heap_KernelHeap_Free(sc_ptr);
+		return FOS_WRONG_USER_DESC;
+	}
+
+	return sc_ptr->user_desc;
+}
+
+
+// удалить счётный семафор
+fos_ret_t USER_FOS_DeleteSemCnt(user_desc_t semc)
+{
+	return FOS_SemCntDelete(&fos, semc);
+}
+
+
+// взять счётный семафор
+fos_ret_t USER_FOS_SemCntTake(user_desc_t semc)
+{
+	return FOS_SemCntTake(&fos, semc);
+}
+
+
+// get taking status of counting semaphore
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t USER_FOS_SemCntTakeStat(user_desc_t semc)
+{
+	return FOS_SemCntTakeStat(&fos, semc);
+}
+
+
+// дать счётный семафор
+fos_ret_t USER_FOS_SemCntGive(user_desc_t semc)
+{
+	return FOS_SemCntGive(&fos, semc);
+}
+
+
+// set counting semaphore timeout
+fos_ret_t USER_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms)
+{
+	return FOS_SemCntSetTimeout(&fos, semc, timeout_ms);
+}
+
+
+// создать очередь для uint32_t
+user_desc_t USER_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms)
+{
+	uint32_t queue_buf_len = size * sizeof(uint32_t);
+	void* queue_buf_ptr = FOS_Heap_ThreadsHeap_Alloc(queue_buf_len);
+	if(queue_buf_ptr == NULL)
+		return FOS_WRONG_USER_DESC;
+
+	fos_queue32_t* que_ptr = Private_USER_FOS_CreateQueue32Obj();
+	if(que_ptr == NULL)
+		return FOS_WRONG_USER_DESC;
+
+	user_desc_t semc = FOS_WRONG_USER_DESC;
+	if(mode == FOS_QUEUE_MODE__POLL_AND_BLOCK)
+	{
+		semc = USER_FOS_CreateSemCnt(size, 0);
+		USER_FOS_SemCntSetTimeout(semc, timeout_ms);
+	}
+
+	// инициализируем и регистрируем
+	if(USER_FOS_Queue32InitAndReg(que_ptr, queue_buf_ptr, size, semc) != FOS__OK)
+	{
+		// обработка ошибки
+		FOS_Heap_KernelHeap_Free(que_ptr);
+		FOS_Heap_ThreadsHeap_Free(queue_buf_ptr);
+		return FOS_WRONG_USER_DESC;
+	}
+
+	return que_ptr->user_desc;
+}
+
+
+// удалить очередь
+fos_ret_t USER_FOS_DeleteQueue32(user_desc_t que)
+{
+	return FOS_Queue32Delete(&fos, que);
+}
+
+
+// ask data
+fos_ret_t USER_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw)
+{
+	return FOS_Queue32AskData(&fos, que, blocking_mode_sw);
+}
+
+
+// read data
+// one must ask data before read every times
+fos_ret_t USER_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr)
+{
+	return FOS_Queue32ReadData(&fos, que, data_ptr);
+}
+
+
+// дать счётный семафор
+fos_ret_t USER_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
+{
+	return FOS_Queue32WriteData(&fos, que, data);
+}
+
+
+// get the system stack debug info
+fos_thread_dbg_t* USER_FOS_GetSysStackDbgInfo()
+{
+	return FOS_GetSysStackDbgInfo(&fos);
+}
+
+
+// get the scheduler debug info
+fos_scheduler_dbg_t* USER_FOS_GetSchedulerDbgInfo()
+{
+	return FOS_GetSchedulerDbgInfo(&fos);
+}
+
+
 // обработчик основного цикла
 void USER_FOS_MainLoopProc()
 {
@@ -358,7 +522,6 @@ void FOS_Lock_UnlockThread(uint8_t thr_id)
 {
 	FOS_UnlockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG);
 }
-
 
 
 /*
@@ -427,10 +590,24 @@ static fos_semaphore_binary_t* Private_USER_FOS_CreateSemBinaryObj()
 }
 
 
+// создать объект семафора
+static fos_semaphore_cnt_t* Private_USER_FOS_CreateSemCntObj()
+{
+	return (fos_semaphore_cnt_t*)FOS_Heap_KernelHeap_Alloc(sizeof(fos_semaphore_cnt_t));
+}
+
+
 // создать объект записи
 static fwriter_t* Private_USER_FOS_CreateFWriterObj()
 {
 	return (fwriter_t*)FOS_Heap_KernelHeap_Alloc(sizeof(fwriter_t));
+}
+
+
+// создать объект очереди
+static fos_queue32_t* Private_USER_FOS_CreateQueue32Obj()
+{
+	return (fos_queue32_t*)FOS_Heap_KernelHeap_Alloc(sizeof(fos_queue32_t));
 }
 
 
@@ -456,11 +633,28 @@ static fos_ret_t USER_FOS_SemBinaryInitAndReg(fos_semaphore_binary_t *semb, fos_
 }
 
 
+// инициализация и регистрация семафора
+static fos_ret_t USER_FOS_SemCntInitAndReg(fos_semaphore_cnt_t *semc, uint32_t max_cnt, uint32_t init_cnt)
+{
+	FOS_SemaphoreCnt_Init(semc, max_cnt, init_cnt);
+	return FOS_SemCntReg(&fos, semc);
+}
+
+
 // инициализация и регистрация объекта записи
 static fos_ret_t USER_FOS_FWriterInitAndReg(fwriter_t *fw, file_init_t *init)
 {
 	FWriter_Init(fw, init);
 	return FOS_FWriterReg(&fos, fw);
+}
+
+
+// инициализация и регистрация очереди
+static fos_ret_t USER_FOS_Queue32InitAndReg(fos_queue32_t *que, uint32_t* buf_ptr, uint16_t buf_size, user_desc_t semc)
+{
+	FOS_Queue32_Init(que, buf_ptr, buf_size);
+	FOS_Queue32JoinToSemCnt(&fos, que, semc);
+	return FOS_Queue32Reg(&fos, que);
 }
 
 

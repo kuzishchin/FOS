@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.4.03
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -30,6 +30,9 @@ static uint8_t FOS_GetThreadId(fos_t *p, fos_thread_t *thr);
 // get thread descriptor by its identifier
 static fos_thread_t* FOS_GetThreadDesc(fos_t *p, uint8_t id);
 
+// send thread with identifier to sleep
+static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time);
+
 // get binary semaphore identifier by user defined descriptor
 static uint8_t FOS_GetUdSemaphoreBinaryId(fos_t *p, user_desc_t user_desc);
 
@@ -41,6 +44,24 @@ static fos_semaphore_binary_t* FOS_GetSemaphoreBinaryDesc(fos_t *p, uint8_t id);
 
 // get writer object identifier by its descriptor
 static uint8_t FOS_GetFWriterId(fos_t *p, fwriter_t *fw);
+
+// get semaphore identifier by user defined descriptor
+static uint8_t FOS_GetUdSemaphoreCntId(fos_t *p, user_desc_t user_desc);
+
+// get semaphore identifier by its descriptor
+static uint8_t FOS_GetSemaphoreCntId(fos_t *p, fos_semaphore_cnt_t *semc);
+
+// get binary semaphore descriptor by its identifier
+static fos_semaphore_cnt_t* FOS_GetSemaphoreCntDesc(fos_t *p, uint8_t id);
+
+// get queue32 identifier by its descriptor
+static uint8_t FOS_GetQueue32Id(fos_t *p, fos_queue32_t *que);
+
+// get queue32 identifier by user defined descriptor
+static uint8_t FOS_GetUdQueue32Id(fos_t *p, user_desc_t user_desc);
+
+// get queue32 descriptor by its identifier
+static fos_queue32_t* FOS_GetQueue32Desc(fos_t *p, uint8_t id);
 
 // OS kernel initialization
 static void Private_FOS_Core_Init(fos_t *p);
@@ -62,6 +83,12 @@ static void Private_FOS_UpdThreadMaxInd(fos_t *p);
 
 // update maximum index of binary semaphore descriptor table
 static void Private_FOS_UpdSemBinaryMaxInd(fos_t *p);
+
+// update maximum index of counting semaphore descriptor table
+static void Private_FOS_UpdSemCntMaxInd(fos_t *p);
+
+// update maximum index of queue32 descriptor table
+static void Private_FOS_UpdQueue32MaxInd(fos_t *p);
 
 // update maximum index of writer object descriptor table
 static void Private_FOS_UpdFWriterMaxInd(fos_t *p);
@@ -251,7 +278,7 @@ void FOS_Yield()
 
 
 // send thread with identifier to sleep
-fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time)
+static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time)
 {
 	if(p == NULL)
 		return FOS__FAIL;
@@ -430,6 +457,25 @@ fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb)
 }
 
 
+// get taking status of binary semaphore
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t FOS_SemBinaryTakeStat(fos_t *p, user_desc_t semb)
+{
+	if((p == NULL) || (semb == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreBinaryId(p, semb);
+	if(id == FOS_WRONG_SEM_BIN_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_binary_t *ptr = FOS_GetSemaphoreBinaryDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_SemaphoreBinary_TakeStat(ptr);
+}
+
+
 // release binary semaphore
 fos_ret_t FOS_SemBinaryGive(fos_t *p, user_desc_t semb)
 {
@@ -445,6 +491,24 @@ fos_ret_t FOS_SemBinaryGive(fos_t *p, user_desc_t semb)
 		return FOS__FAIL;
 
 	return FOS_SemaphoreBinary_Give(ptr);
+}
+
+
+// set binary semaphore timeout
+fos_ret_t FOS_SemBinarySetTimeout(fos_t *p, user_desc_t semb, uint32_t timeout_ms)
+{
+	if((p == NULL) || (semb == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreBinaryId(p, semb);
+	if(id == FOS_WRONG_SEM_BIN_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_binary_t *ptr = FOS_GetSemaphoreBinaryDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_SemaphoreBinary_SetTimeout(ptr, timeout_ms);
 }
 
 
@@ -514,6 +578,376 @@ void FOS_ErrorSet(fos_t *p, fos_err_t *err)
 }
 
 
+// get semaphore identifier by user defined descriptor
+static uint8_t FOS_GetUdSemaphoreCntId(fos_t *p, user_desc_t user_desc)
+{
+	if((p == NULL) || (user_desc == FOS_WRONG_USER_DESC))
+		return FOS_WRONG_SEM_CNT_ID;
+
+	for(uint8_t i = 0; i <= p->var.semc_max_ind; i++)
+		if(p->var.semc_desc_list[i])
+			if(p->var.semc_desc_list[i]->user_desc == user_desc)
+				return i;
+
+	return FOS_WRONG_SEM_CNT_ID;
+}
+
+
+// get semaphore identifier by its descriptor
+static uint8_t FOS_GetSemaphoreCntId(fos_t *p, fos_semaphore_cnt_t *semc)
+{
+	if(p == NULL)
+		return FOS_WRONG_SEM_CNT_ID;
+
+	for(uint8_t i = 0; i < FOS_SEM_COUNTING_CNT; i++)
+		if(p->var.semc_desc_list[i] == semc)
+			return i;
+
+	return FOS_WRONG_SEM_CNT_ID;
+}
+
+
+// get semaphore descriptor by its identifier
+static fos_semaphore_cnt_t* FOS_GetSemaphoreCntDesc(fos_t *p, uint8_t id)
+{
+	if(p == NULL)
+		return NULL;
+
+	if(id > p->var.semc_max_ind)
+		return NULL;
+
+	return p->var.semc_desc_list[id];
+}
+
+
+// register counting semaphore
+fos_ret_t FOS_SemCntReg(fos_t *p, fos_semaphore_cnt_t *semc)
+{
+	if((p == NULL) || (semc == NULL))
+		return FOS__FAIL;
+
+	uint8_t ind = 0;
+	fos_var_t *v = &p->var;
+
+	// search for duplicated semaphores
+	if(FOS_GetSemaphoreCntId(p, semc) != FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	// search for available section
+	ind = FOS_GetSemaphoreCntId(p, NULL);
+	if(ind == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	// assign unique user-defined descriptor to the semaphore
+	if(FOS_SemaphoreCnt_SetUserDesc(semc, Private_FOS_GenUserDesc(p)) != FOS__OK)
+		return FOS__FAIL;
+
+	v->semc_desc_list[ind] = semc;        // insert the pointer into the available section
+
+	Private_FOS_UpdSemCntMaxInd(p);       // update the maximum index
+
+	return FOS__OK;
+}
+
+
+// delete counting semaphore
+fos_ret_t FOS_SemCntDelete(fos_t *p, user_desc_t semc)
+{
+	if((p == NULL) || (semc == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreCntId(p, semc);
+	if(id == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
+		return FOS__FAIL;
+
+	FOS_SemaphoreCnt_UnlockAll(ptr);
+	p->var.semc_desc_list[id] = NULL;
+
+	Private_FOS_UpdSemCntMaxInd(p);    // update the maximum index
+
+	return FOS__OK;
+}
+
+
+// acquire counting semaphore
+fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc)
+{
+	if((p == NULL) || (semc == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreCntId(p, semc);
+	if(id == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_SemaphoreCnt_Take(ptr, p->var.current_thr);
+}
+
+
+// get status of acquire counting semaphore
+fos_ret_t FOS_SemCntTakeStat(fos_t *p, user_desc_t semc)
+{
+	if((p == NULL) || (semc == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreCntId(p, semc);
+	if(id == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_SemaphoreCnt_TakeStat(ptr);
+}
+
+
+// release counting semaphore
+fos_ret_t FOS_SemCntGive(fos_t *p, user_desc_t semc)
+{
+	if((p == NULL) || (semc == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreCntId(p, semc);
+	if(id == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_SemaphoreCnt_Give(ptr);
+}
+
+
+// set counting semaphore timeout
+fos_ret_t FOS_SemCntSetTimeout(fos_t *p, user_desc_t semc, uint32_t timeout_ms)
+{
+	if((p == NULL) || (semc == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreCntId(p, semc);
+	if(id == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_SemaphoreCnt_SetTimeout(ptr, timeout_ms);
+}
+
+
+// get queue32 identifier by its descriptor
+static uint8_t FOS_GetQueue32Id(fos_t *p, fos_queue32_t *que)
+{
+	if(p == NULL)
+		return FOS_WRONG_QUE_32_ID;
+
+	for(uint8_t i = 0; i < FOS_SEM_QUEUE_32_CNT; i++)
+		if(p->var.queue32_desc_list[i] == que)
+			return i;
+
+	return FOS_WRONG_QUE_32_ID;
+}
+
+
+// get queue32 identifier by user defined descriptor
+static uint8_t FOS_GetUdQueue32Id(fos_t *p, user_desc_t user_desc)
+{
+	if((p == NULL) || (user_desc == FOS_WRONG_USER_DESC))
+		return FOS_WRONG_QUE_32_ID;
+
+	for(uint8_t i = 0; i <= p->var.queue32_max_ind; i++)
+		if(p->var.queue32_desc_list[i])
+			if(p->var.queue32_desc_list[i]->user_desc == user_desc)
+				return i;
+
+	return FOS_WRONG_QUE_32_ID;
+}
+
+
+// get queue32 descriptor by its identifier
+static fos_queue32_t* FOS_GetQueue32Desc(fos_t *p, uint8_t id)
+{
+	if(p == NULL)
+		return NULL;
+
+	if(id > p->var.queue32_max_ind)
+		return NULL;
+
+	return p->var.queue32_desc_list[id];
+}
+
+
+// register queue32
+fos_ret_t FOS_Queue32Reg(fos_t *p, fos_queue32_t *que)
+{
+	if((p == NULL) || (que == NULL))
+		return FOS__FAIL;
+
+	uint8_t ind = 0;
+	fos_var_t *v = &p->var;
+
+	// search for duplicated
+	if(FOS_GetQueue32Id(p, que) != FOS_WRONG_QUE_32_ID)
+		return FOS__FAIL;
+
+	// search for available section
+	ind = FOS_GetQueue32Id(p, NULL);
+	if(ind == FOS_WRONG_QUE_32_ID)
+		return FOS__FAIL;
+
+	// assign unique user-defined descriptor to the queue32
+	if(FOS_Queue32_SetUserDesc(que, Private_FOS_GenUserDesc(p)) != FOS__OK)
+		return FOS__FAIL;
+
+	v->queue32_desc_list[ind] = que;      // insert the pointer into the available section
+
+	Private_FOS_UpdQueue32MaxInd(p);      // update the maximum index
+
+	return FOS__OK;
+}
+
+
+// join counting semaphore to queue32
+fos_ret_t FOS_Queue32JoinToSemCnt(fos_t *p, fos_queue32_t *que, user_desc_t semc)
+{
+	if((p == NULL) || (que == NULL) || (semc == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreCntId(p, semc);
+	if(id == FOS_WRONG_SEM_CNT_ID)
+		return FOS__FAIL;
+
+	FOS_Queue32_SetSemaphorePtr(que, FOS_GetSemaphoreCntDesc(p, id));
+
+	return FOS__OK;
+}
+
+
+// delete queue32
+fos_ret_t FOS_Queue32Delete(fos_t *p, user_desc_t que)
+{
+	if((p == NULL) || (que == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdQueue32Id(p, que);
+	if(id == FOS_WRONG_QUE_32_ID)
+		return FOS__FAIL;
+
+	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
+		return FOS__FAIL;
+
+	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr->msg.buf_ptr, FOS_THREADS_HEAP_ID) != FOS__OK)
+		return FOS__FAIL;
+
+	if(ptr->semc_ptr)
+		FOS_SemCntDelete(p, ptr->semc_ptr->user_desc);
+
+	p->var.queue32_desc_list[id] = NULL;
+
+	Private_FOS_UpdQueue32MaxInd(p);   // update the maximum index
+
+	return FOS__OK;
+}
+
+
+// ask data
+fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, fos_queue_sw_t blocking_mode_sw)
+{
+	if((p == NULL) || (que == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdQueue32Id(p, que);
+	if(id == FOS_WRONG_QUE_32_ID)
+		return FOS__FAIL;
+
+	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	uint8_t block_thr_id = FOS_SPECIAL_ID;
+
+	if(blocking_mode_sw == FOS_QUEUE_SW__BLOCK)
+		if(FOS_System_GetWorkMode() == FOS__USER_WORK_MODE)
+			block_thr_id = p->var.current_thr;
+
+	return FOS_Queue32_AskData(ptr, block_thr_id);
+}
+
+
+// read data
+// one must ask data before read every times
+fos_ret_t FOS_Queue32ReadData(fos_t *p, user_desc_t que, uint32_t* data_ptr)
+{
+	if((p == NULL) || (que == FOS_WRONG_USER_DESC) || (data_ptr == NULL))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdQueue32Id(p, que);
+	if(id == FOS_WRONG_QUE_32_ID)
+		return FOS__FAIL;
+
+	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_Queue32_ReadData(ptr, data_ptr);
+}
+
+
+// write data
+fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data)
+{
+	if((p == NULL) || (que == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdQueue32Id(p, que);
+	if(id == FOS_WRONG_QUE_32_ID)
+		return FOS__FAIL;
+
+	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_Queue32_WriteData(ptr, data);
+}
+
+
+// get the system stack debug info
+fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	return &p->sys_stack_dbg;
+}
+
+
+// get the scheduler debug info
+fos_scheduler_dbg_t* FOS_GetSchedulerDbgInfo(fos_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	return &p->sheduler.dbg;
+}
+
+
 // main loop handler
 void FOS_MainLoopProc(fos_t *p)
 {
@@ -531,6 +965,12 @@ void FOS_MainLoopProc(fos_t *p)
 	 * Handle states of all the threads
 	 */
 	FOS_AllThreadProcState(p->var.thread_desc_list, p->var.thread_max_ind);
+
+	/*
+	 * Handle states of all the sem
+	 */
+	FOS_AllSemaphoreBinary_ProcTimeout(p->var.semb_desc_list, p->var.semb_max_ind);
+	FOS_AllSemaphoreCnt_ProcTimeout(p->var.semc_desc_list, p->var.semc_max_ind);
 
 	if(Private_FOS_Sheduler(p) < 0)          // thread scheduler
 		return;
@@ -623,7 +1063,7 @@ static void Private_FOS_UpdThreadMaxInd(fos_t *p)
 {
 	uint8_t ind = 0;
 
-	// calculate maximum index of the registered thread
+	// calculate maximum index
 	for(uint8_t i = 0; i < FOS_MAX_THR_CNT; i++)
 		if(p->var.thread_desc_list[i] != NULL)
 			ind = i;
@@ -637,7 +1077,7 @@ static void Private_FOS_UpdSemBinaryMaxInd(fos_t *p)
 {
 	uint8_t ind = 0;
 
-	// calculate maximum index of the registered thread
+	// calculate maximum index
 	for(uint8_t i = 0; i < FOS_SEM_BIN_CNT; i++)
 		if(p->var.semb_desc_list[i] != NULL)
 			ind = i;
@@ -646,12 +1086,40 @@ static void Private_FOS_UpdSemBinaryMaxInd(fos_t *p)
 }
 
 
+// update maximum index of counting semaphore descriptor table
+static void Private_FOS_UpdSemCntMaxInd(fos_t *p)
+{
+	uint8_t ind = 0;
+
+	// calculate maximum index
+	for(uint8_t i = 0; i < FOS_SEM_COUNTING_CNT; i++)
+		if(p->var.semc_desc_list[i] != NULL)
+			ind = i;
+
+	p->var.semc_max_ind = ind;                // record the maximum index into a variable
+}
+
+
+// update maximum index of queue32 descriptor table
+static void Private_FOS_UpdQueue32MaxInd(fos_t *p)
+{
+	uint8_t ind = 0;
+
+	// calculate maximum index
+	for(uint8_t i = 0; i < FOS_SEM_QUEUE_32_CNT; i++)
+		if(p->var.queue32_desc_list[i] != NULL)
+			ind = i;
+
+	p->var.queue32_max_ind = ind;             // record the maximum index into a variable
+}
+
+
 // update maximum index of writer object descriptor table
 static void Private_FOS_UpdFWriterMaxInd(fos_t *p)
 {
 	uint8_t ind = 0;
 
-	// calculate maximum index of the registered thread
+	// calculate maximum index
 	for(uint8_t i = 0; i < FOS_FWRITER_CNT; i++)
 		if(p->var.fwriter_desc_list[i] != NULL)
 			ind = i;

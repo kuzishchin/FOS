@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.2.02
+ * @date      23.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -37,6 +37,9 @@ fos_ret_t SYS_FOS_Sleep(uint32_t time);
 
 // взять бинарный светофор
 fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb);
+
+// статус взятия бинарного семафор
+fos_ret_t SYS_FOS_SemBinaryTakeStat(user_desc_t semb);
 
 // дать бинарный свнтофор
 fos_ret_t SYS_FOS_SemBinaryGive(user_desc_t semb);
@@ -76,9 +79,60 @@ void SYS_File_Mount(uint8_t dev_num);
 // размонтировать файловую систему
 void SYS_File_Unmount(uint8_t dev_num);
 
+// set binary semaphore timeout
+fos_ret_t SYS_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
+
+// взять счётный семафор
+fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc);
+
+// статус взятия счётного семафора
+fos_ret_t SYS_FOS_SemCntTakeStat(user_desc_t semc);
+
+// дать счётный семафор
+fos_ret_t SYS_FOS_SemCntGive(user_desc_t semc);
+
+// создать счётный семафор
+user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
+
+// удалить счётный семафор
+fos_ret_t SYS_FOS_DeleteSemCnt(user_desc_t semc);
+
+// set counting semaphore timeout
+fos_ret_t SYS_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms);
+
+// create queue32
+user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms);
+
+// delete queue32
+fos_ret_t SYS_FOS_DeleteQueue32(user_desc_t que);
+
+// ask data from queue32
+fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw);
+
+// read data from queue32
+// one must ask data before read every times
+fos_ret_t SYS_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr);
+
+// write data to queue32
+fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
 
 
 #endif /* APPLICATION_FOS_SYSTEM_FOS_SYSTEM_H_ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

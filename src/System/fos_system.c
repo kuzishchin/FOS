@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.0.01
- * @date      04.04.2024
+ * @version   V1.2.02
+ * @date      23.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -46,7 +46,7 @@ fos_ret_t SYS_FOS_Sleep(uint32_t time)
 }
 
 
-// взять бинарный светофор
+// взять бинарный семафор
 fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb)
 {
 	uint32_t buf[2];
@@ -58,7 +58,19 @@ fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb)
 }
 
 
-// дать бинарный свнтофор
+// статус взятия бинарного семафора
+fos_ret_t SYS_FOS_SemBinaryTakeStat(user_desc_t semb)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)semb;
+
+	system_call(FOS_SYSCALL_FOS_SEMB_TAKE_STAT, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// дать бинарный семафор
 fos_ret_t SYS_FOS_SemBinaryGive(user_desc_t semb)
 {
 	uint32_t buf[2];
@@ -192,6 +204,171 @@ void SYS_File_Unmount(uint8_t dev_num)
 
 	system_call(FOS_SYSCALL_FILE_UNMOUNT, buf);
 }
+
+
+// set binary semaphore timeout
+fos_ret_t SYS_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)semb;
+	buf[2] = (uint32_t)timeout_ms;
+
+	system_call(FOS_SYSCALL_FOS_SEMB_SET_TIMEOUT, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// взять счётный семафор
+fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)semc;
+
+	system_call(FOS_SYSCALL_FOS_SEMC_TAKE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// статус взятия счётного семафора
+fos_ret_t SYS_FOS_SemCntTakeStat(user_desc_t semc)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)semc;
+
+	system_call(FOS_SYSCALL_FOS_SEMC_TAKE_STAT, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// дать счётный семафор
+fos_ret_t SYS_FOS_SemCntGive(user_desc_t semc)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)semc;
+
+	system_call(FOS_SYSCALL_FOS_SEMC_GIVE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// создать счётный семафор
+user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)max_cnt;
+	buf[2] = (uint32_t)init_cnt;
+
+	system_call(FOS_SYSCALL_FOS_CREATE_SEMC, buf);
+
+	return (user_desc_t)buf[0];
+}
+
+
+// удалить счётный семафор
+fos_ret_t SYS_FOS_DeleteSemCnt(user_desc_t semc)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)semc;
+
+	system_call(FOS_SYSCALL_FOS_DELETE_SEMC, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// set counting semaphore timeout
+fos_ret_t SYS_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)semc;
+	buf[2] = (uint32_t)timeout_ms;
+
+	system_call(FOS_SYSCALL_FOS_SEMC_SET_TIMEOUT, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// create queue32
+user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms)
+{
+	uint32_t buf[4];
+	buf[1] = (uint32_t)size;
+	buf[2] = (uint32_t)mode;
+	buf[3] = (uint32_t)timeout_ms;
+
+	system_call(FOS_SYSCALL_FOS_QUEUE_32_CREATE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// delete queue32
+fos_ret_t SYS_FOS_DeleteQueue32(user_desc_t que)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)que;
+
+	system_call(FOS_SYSCALL_FOS_QUEUE_32_DELETE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// ask data from queue32
+fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)que;
+	buf[2] = (uint32_t)blocking_mode_sw;
+
+	system_call(FOS_SYSCALL_FOS_QUEUE_32_ASK, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// read data from queue32
+// one must ask data before read every times
+fos_ret_t SYS_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr)
+{
+	uint32_t buf[3];
+	buf[2] = (uint32_t)que;
+
+	system_call(FOS_SYSCALL_FOS_QUEUE_32_READ, buf);
+
+	fos_ret_t ret = (fos_ret_t)buf[0];
+	if(ret == FOS__OK)
+		*data_ptr = buf[1];
+
+	return ret;
+}
+
+
+// write data to queue32
+fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)que;
+	buf[2] = (uint32_t)data;
+
+	system_call(FOS_SYSCALL_FOS_QUEUE_32_WRITE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+
+
+
+
+
+
+
 
 
 

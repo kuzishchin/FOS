@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      user_fos.h
  * @brief     Kernel. Header file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.3.03
+ * @date      06.02.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,6 +26,9 @@
 
 #include "Kernel/fos.h"
 
+
+// get FOS version
+char* FOS_GetVersion();
 
 // инициализация ОС
 void USER_FOS_Init();
@@ -60,8 +63,15 @@ fos_ret_t USER_FOS_DeleteSemBinary(user_desc_t semb);
 // взять бинарный семафор
 fos_ret_t USER_FOS_SemBinaryTake(user_desc_t semb);
 
+// get taking status of binary semaphore
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t USER_FOS_SemBinaryTakeStat(user_desc_t semb);
+
 // дать бинарный семафор
 fos_ret_t USER_FOS_SemBinaryGive(user_desc_t semb);
+
+// set binary semaphore timeout
+fos_ret_t USER_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
 
 // get semaphore binary user descriptor by thread user descriptor
 user_desc_t USER_FOS_GetThreadSembDesc(user_desc_t desc);
@@ -72,6 +82,47 @@ fwriter_t* USER_CreateFWriter(uint16_t write_buf_len);
 
 // зафиксировать ошибку
 void USER_FOS_ErrorSet(fos_err_t *err);
+
+// создать счётный семафор
+user_desc_t USER_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
+
+// удалить счтёный семафор
+fos_ret_t USER_FOS_DeleteSemCnt(user_desc_t semc);
+
+// взять счтёный светофор
+fos_ret_t USER_FOS_SemCntTake(user_desc_t semc);
+
+// get taking status of counting semaphore
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t USER_FOS_SemCntTakeStat(user_desc_t semc);
+
+// дать счтёный свнтофор
+fos_ret_t USER_FOS_SemCntGive(user_desc_t semc);
+
+// set counting semaphore timeout
+fos_ret_t USER_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms);
+
+// создать очередь для uint32_t
+user_desc_t USER_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms);
+
+// удалить очередь
+fos_ret_t USER_FOS_DeleteQueue32(user_desc_t que);
+
+// ask data
+fos_ret_t USER_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw);
+
+// read data
+// one must ask data before read every times
+fos_ret_t USER_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr);
+
+// дать счётный семафор
+fos_ret_t USER_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
+
+// get the system stack debug info
+fos_thread_dbg_t* USER_FOS_GetSysStackDbgInfo();
+
+// get the scheduler debug info
+fos_scheduler_dbg_t* USER_FOS_GetSchedulerDbgInfo();
 
 // обработчик основного цикла
 void USER_FOS_MainLoopProc();

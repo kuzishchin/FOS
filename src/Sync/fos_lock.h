@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.h
  * @brief     Object for locking threads. Header file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.2.01
+ * @date      23.01.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -34,7 +34,7 @@ void FOS_Lock_Init(fos_lock_t *p);
 fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id);
 
 // отдать блокировку; разблокирует заблокированные потоки в порядке очереди их блокировки
-fos_ret_t FOS_Lock_Give(fos_lock_t *p);
+fos_ret_t FOS_Lock_Give(fos_lock_t *p, fos_sw_t timeout_flag);
 
 // вернуть число заблокированных потоков
 uint8_t FOS_Lock_GetLockedThreadsCount(fos_lock_t *p);

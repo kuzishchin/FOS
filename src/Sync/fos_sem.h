@@ -1,7 +1,7 @@
 /**************************************************************************//**
- * @file      fos_semb.h
- * @brief     Binary named strong semaphore. Header file.
- * @version   V1.2.01
+ * @file      fos_sem.h
+ * @brief     Counting named strong semaphore. Header file.
+ * @version   V1.1.02
  * @date      23.01.2026
  ******************************************************************************/
 /*
@@ -20,43 +20,58 @@
 * limitations under the License.
 */
 
-#ifndef APPLICATION_FOS_SYNC_FOS_SEMB_H_
-#define APPLICATION_FOS_SYNC_FOS_SEMB_H_
+#ifndef SYNC_FOS_SEM_H_
+#define SYNC_FOS_SEM_H_
 
 
 #include "fos_types.h"
 
+
 // инициализация
-void FOS_SemaphoreBinary_Init(fos_semaphore_binary_t *p, fos_semb_state_t init_state);
+void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t init_cnt);
 
 // установить пользовательский дескриптор
-fos_ret_t FOS_SemaphoreBinary_SetUserDesc(fos_semaphore_binary_t *p, user_desc_t user_desc);
+fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_desc);
 
 // взять
-fos_ret_t FOS_SemaphoreBinary_Take(fos_semaphore_binary_t *p, uint8_t thr_id);
+// поток с FOS_SPECIAL_ID уменьшает счётчик но не блоирует
+fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id);
 
 // получить статус взятия семафора
 // FOS__OK - нормальное взятие семафора, FOS__FAIL - взятие по таймауту
-fos_ret_t FOS_SemaphoreBinary_TakeStat(fos_semaphore_binary_t *p);
+fos_ret_t FOS_SemaphoreCnt_TakeStat(fos_semaphore_cnt_t *p);
 
 // дать
-fos_ret_t FOS_SemaphoreBinary_Give(fos_semaphore_binary_t *p);
-
-// отсоединить поток
-fos_ret_t FOS_SemaphoreBinary_UnlinkThread(fos_semaphore_binary_t *p, uint8_t thr_id);
-
-// освободить все потоки
-fos_ret_t FOS_SemaphoreBinary_UnlockAll(fos_semaphore_binary_t *p);
+fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p);
 
 // обработка таймаута всех семафоров
-void FOS_AllSemaphoreBinary_ProcTimeout(volatile fos_semaphore_binary_ptr *semb_desc_list, uint8_t semb_max_ind);
+void FOS_AllSemaphoreCnt_ProcTimeout(volatile fos_semaphore_cnt_ptr *sem_desc_list, uint8_t sem_max_ind);
+
+// отсоединить поток
+fos_ret_t FOS_SemaphoreCnt_UnlinkThread(fos_semaphore_cnt_t *p, uint8_t thr_id);
+
+// освободить все потоки
+fos_ret_t FOS_SemaphoreCnt_UnlockAll(fos_semaphore_cnt_t *p);
 
 // установить таймаут
-fos_ret_t FOS_SemaphoreBinary_SetTimeout(fos_semaphore_binary_t *p, uint32_t timeout_ms);
+fos_ret_t FOS_SemaphoreCnt_SetTimeout(fos_semaphore_cnt_t *p, uint32_t timeout_ms);
 
 
 
-#endif /* APPLICATION_FOS_SYNC_FOS_SEMB_H_ */
+#endif /* SYNC_FOS_SEM_H_ */
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
