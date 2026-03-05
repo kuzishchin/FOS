@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      user_fos.c
  * @brief     Kernel. Source file.
- * @version   V1.3.03
- * @date      06.02.2026
+ * @version   V1.3.05
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -30,13 +30,15 @@ static fos_t fos;                                          // ОС
 
 extern uint32_t kernel_stack[FOS_KERNEL_STACK_SIZE / 4];   // стек ядра
 
-static char *FOS_ver = "FOS version 1.0.2 build 03 06.02.2026 api-1\r\n\0";  // версия FOS
+static char *FOS_ver = "FOS version 1.0.3 build 02 03.03.2026 api-1\r\n\0";  // версия FOS
 
 // основной цикл потока бездействия системы
 static void Iddle_Main_thr();
 
 // поток обработки файловой системы
+#ifdef FOS_USE_FATFS
 static void FProc_Main_thr();
+#endif
 
 // создать объект потока
 static fos_thread_t* Private_USER_FOS_CreateThreadObj();
@@ -124,7 +126,7 @@ void USER_FOS_Init()
 	thr = USER_FOS_CreateThread(&user_init);
 	USER_FOS_RunDesc(thr);
 
-
+#ifdef FOS_USE_FATFS
 	// поток обработки файловой системы
 	user_init.user_thread_ep = FProc_Main_thr;
 	user_init.priotity = FOS_PRIORITY_CNT - 2;		// VERY LOW
@@ -134,6 +136,7 @@ void USER_FOS_Init()
 	user_init.name_ptr = "FProc\0";
 	thr = USER_FOS_CreateThread(&user_init);
 	USER_FOS_RunDesc(thr);
+#endif
 }
 
 
@@ -539,10 +542,9 @@ static void Iddle_Main_thr()
 
 
 // поток обработки файловой системы
+#ifdef FOS_USE_FATFS
 static void FProc_Main_thr()
 {
-	const uint32_t SLEEP_TIME_MS = 10;
-
 	fos_t* f = &fos;                // указатель на FOS
 	fwriter_t* fwriter = NULL;      // указатель на FWriter
 	uint8_t    isDataToWrite;       // флаг наличия данных на запись
@@ -565,11 +567,12 @@ static void FProc_Main_thr()
 		}
 
 		if(!isDataToWrite)                                   // если данных на запись нет
-			FOS_Sleep(f, SLEEP_TIME_MS);                     // усыпляем поток
+			FOS_Sleep(f, FOS_WRITE_PERIOD_MS);               // усыпляем поток
 
 		File_MountProc();                                    // обработка состояния устройств
 	}
 }
+#endif
 
 
 /*

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.h
  * @brief     Abstraction layer for heap. Header file.
- * @version   V1.0.02
- * @date      06.02.2026
+ * @version   V1.0.03
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.4.03
- * @date      06.02.2026
+ * @version   V1.4.04
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

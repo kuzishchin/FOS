@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.3.02
- * @date      02.02.2026
+ * @version   V1.3.03
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -49,6 +49,11 @@
 
 #define FOS_KERNEL_HEAP_ID     0x1           // ID of kernel heap
 #define FOS_THREADS_HEAP_ID    0x2           // ID of threads heap
+
+#define FOS_SYS_CALL_CNT       32            // maximum system call count
+#define FOS_PRIORITY_CNT       8             // maximum priorities count(0 is the highest, 1 - lower than 0, etc.)
+
+#define FOS_HARD_FAULT_CALL_ID 0xFFFF        // identifier of hard fault calling function
 
 
 // on-off switch

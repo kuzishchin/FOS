@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.1.00
- * @date      04.04.2024
+ * @version   V1.1.01
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,7 +27,9 @@
 
 
 // получить адрес максимальной отметки заполнения стека
+#ifdef FOS_STACK_CHECK_PERIOD_MS
 static uint32_t FOS_ThreadGetAdrStackWatermark(uint32_t low_sp, uint32_t high_sp);
+#endif
 
 // обработать сосояние потока
 static void FOS_ThreadProcState(fos_thread_t *p);
@@ -51,7 +53,11 @@ static void FOS_ThreadSetLockFlag(fos_thread_t *p, uint32_t lock);
 static void FOS_ThreadReleaseLockFlag(fos_thread_t *p, uint32_t lock);
 
 // вызов callback ошибки стека
+#ifdef FOS_STACK_CHECK_PERIOD_MS
+#ifdef FOS_ERROR_STACK_WML
 static void FOS_Call_StackErrorCallback(fos_thread_dbg_t *p, user_desc_t user_desc);
+#endif
+#endif
 
 // бработчик callback ошибки стека
 static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
@@ -268,6 +274,7 @@ void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc)
 	/*
 	 * Проверка заполненности стека
 	 */
+#ifdef FOS_STACK_CHECK_PERIOD_MS
 	if((SL_GetTick() - d->ts) >= FOS_STACK_CHECK_PERIOD_MS)
 	{
 		d->ts = SL_GetTick();
@@ -276,9 +283,12 @@ void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc)
 		d->max_stack_usage_p = (float)d->max_stack_usage_b / (float)d->stack_size;
 		d->max_stack_usage_p *= 100.0f;
 
+#ifdef FOS_ERROR_STACK_WML
 		if(d->max_stack_usage_p > FOS_ERROR_STACK_WML)
 			FOS_Call_StackErrorCallback(d, user_desc);
+#endif
 	}
+#endif
 }
 
 
@@ -286,6 +296,7 @@ void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc)
 
 
 // получить адрес максимальной отметки заполнения стека
+#ifdef FOS_STACK_CHECK_PERIOD_MS
 static uint32_t FOS_ThreadGetAdrStackWatermark(uint32_t low_sp, uint32_t high_sp)
 {
 	for(uint32_t i = low_sp; i < high_sp; i++)
@@ -294,6 +305,7 @@ static uint32_t FOS_ThreadGetAdrStackWatermark(uint32_t low_sp, uint32_t high_sp
 
 	return high_sp;
 }
+#endif
 
 
 // обработать состояние потока
@@ -408,11 +420,15 @@ static void FOS_ThreadReleaseLockFlag(fos_thread_t *p, uint32_t lock)
 
 
 // вызов callback ошибки стека
+#ifdef FOS_STACK_CHECK_PERIOD_MS
+#ifdef FOS_ERROR_STACK_WML
 static void FOS_Call_StackErrorCallback(fos_thread_dbg_t *p, user_desc_t user_desc)
 {
 	if(p->stack_err_cbk)
 		p->stack_err_cbk(user_desc);
 }
+#endif
+#endif
 
 
 // бработчик callback ошибки стека

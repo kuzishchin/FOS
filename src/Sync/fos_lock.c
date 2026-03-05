@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.2.01
- * @date      23.01.2026
+ * @version   V1.2.02
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -91,21 +91,24 @@ fos_ret_t FOS_Lock_Give(fos_lock_t *p, fos_sw_t timeout_flag)
 	if(p == NULL)
 		return FOS__FAIL;
 
-	if(p->lock_thr_cnt)                   // если есть заблокированные потоки
+	uint8_t thr_id = FOS_WRONG_THREAD_ID;
+
+	while((p->lock_thr_cnt) && (thr_id == FOS_WRONG_THREAD_ID))          // пока есть потоки на разблокировку и не раблокировали очередной существующий поток
 	{
-		uint8_t thr_id = p->lock_thr_is_list[p->first_lock_thr];         // получаем id первого заблокированного потока
+		thr_id = p->lock_thr_is_list[p->first_lock_thr];                 // получаем id первого заблокированного потока
 		p->lock_thr_is_list[p->first_lock_thr] = FOS_WRONG_THREAD_ID;    // удаляем id этого потока из массива
 		p->first_lock_thr = Private_FOS_Lock_IncInd(p->first_lock_thr);  // инкремент индекса первого заблокированного потока
 
 		p->lock_thr_cnt--;                // декремент счётчика заблокированных потоков
 
-		// обработка таймаута
-//		p->timeout_flag = timeout_flag;
-		if(timeout_flag)
-			p->timeout_cnt++;
+		if(thr_id != FOS_WRONG_THREAD_ID)     // если поток существующий
+		{
+			// обработка таймаута
+			if(timeout_flag)
+				p->timeout_cnt++;
 
-		FOS_Lock_UnlockThread(thr_id);    // разблокируем поток
-
+			FOS_Lock_UnlockThread(thr_id);    // разблокируем поток
+		}
 	}
 
 	return FOS__OK;

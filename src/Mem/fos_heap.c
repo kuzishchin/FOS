@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.c
  * @brief     Abstraction layer for heap. Source file.
- * @version   V1.0.02
- * @date      06.02.2026
+ * @version   V1.0.03
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -60,7 +60,9 @@ void FOS_Heap_Init()
 	init.array_size_byte = FOS_KERNEL_HEAP_SIZE;
 	init.dmem_err_cbk_t  = Private_FOS_Heap_KernelHeap_ErrCbk;
 	DMem_HeapInit(&kernel_heap, &init);
+#ifdef FOS_HEAP_CHECK_PERIOD_MS
 	DMem_SetProcPeriod(&kernel_heap, FOS_HEAP_CHECK_PERIOD_MS);
+#endif
 
 	/*
 	 * Инициализируем кучу процессов
@@ -69,15 +71,19 @@ void FOS_Heap_Init()
 	init.array_size_byte = FOS_THREADS_HEAP_SIZE;
 	init.dmem_err_cbk_t  = Private_FOS_Heap_ThreadsHeap_ErrCbk;
 	DMem_HeapInit(&threads_heap, &init);
+#ifdef FOS_HEAP_CHECK_PERIOD_MS
 	DMem_SetProcPeriod(&threads_heap, FOS_HEAP_CHECK_PERIOD_MS);
+#endif
 }
 
 
 // обработчик основного цикла
 void FOS_Heap_MainLoopProc()
 {
+#ifdef FOS_HEAP_CHECK_PERIOD_MS
 	DMem_MainLoopProc(&kernel_heap);
 	DMem_MainLoopProc(&threads_heap);
+#endif
 }
 
 

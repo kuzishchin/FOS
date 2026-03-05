@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      user_fos.h
  * @brief     Kernel. Header file.
- * @version   V1.3.03
- * @date      06.02.2026
+ * @version   V1.3.05
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

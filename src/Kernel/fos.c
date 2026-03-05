@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.4.03
- * @date      06.02.2026
+ * @version   V1.4.04
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -1179,6 +1179,7 @@ static void Private_FOS_TerminatingThreadProc(fos_t *p)
 static void Private_FOS_UnlinkThread(fos_t *p, uint8_t thr_id)
 {
 	fos_semaphore_binary_t *semb;
+	fos_semaphore_cnt_t    *semc;
 
 	/*
 	 * Unlink thread from all binary semaphores
@@ -1189,6 +1190,18 @@ static void Private_FOS_UnlinkThread(fos_t *p, uint8_t thr_id)
 		if(semb)
 		{
 			FOS_SemaphoreBinary_UnlinkThread(semb, thr_id);
+		}
+	}
+
+	/*
+	 * Unlink thread from all counting semaphores
+	 */
+	for(uint8_t i = 0; i <= p->var.semc_max_ind; i++)
+	{
+		semc = FOS_GetSemaphoreCntDesc(p, i);
+		if(semc)
+		{
+			FOS_SemaphoreCnt_UnlinkThread(semc, thr_id);
 		}
 	}
 }

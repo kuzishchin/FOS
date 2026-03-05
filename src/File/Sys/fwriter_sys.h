@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fwriter_sys.h
  * @brief     The driver of file writing handling. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      03.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

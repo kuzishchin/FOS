@@ -1,5 +1,12 @@
 # FOS versions
 
+## FOS v1.0.3 build 02 03.03.2026 api-1
+* Fix some bugs in the semaphore logic
+* Done settings optimization
+* Done some memory optimization
+* Added ability to disable some runtime checks
+
+
 ## FOS v1.0.2 build 03 06.02.2026 api-1
 * Added release binary semaphore for ISR
 * Added timeout event for binary semaphore

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fwriter_sys.c
  * @brief     The driver of file writing handling. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      03.03.2024
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -24,8 +24,11 @@
 #include "File/Sys/fwriter_sys.h"
 #include "Platform/sl_platform.h"
 
-
+#ifdef FOS_USE_FATFS
 static uint8_t write_buf[FOS_FILEWR_MAX_BUF_LEN];   // буфер на запись
+#else
+static uint8_t write_buf[8];
+#endif
 
 
 // обработчик ошибок
