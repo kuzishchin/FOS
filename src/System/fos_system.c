@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.2.02
- * @date      23.01.2026
+ * @version   V1.2.03
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -30,19 +30,6 @@
 void SYS_FOS_Yield()
 {
 	system_call(FOS_SYSCALL_FOS_YIELD, NULL);
-}
-
-
-// усыпить текущий поток
-// используется в слабом подтягивании
-fos_ret_t SYS_FOS_Sleep(uint32_t time)
-{
-	uint32_t buf[2];
-	buf[1] = time;
-
-	system_call(FOS_SYSCALL_FOS_SLEEP, buf);
-
-	return (fos_ret_t)buf[0];
 }
 
 
@@ -142,19 +129,6 @@ fos_ret_t SYS_FOS_RunDesc(user_desc_t desc)
 }
 
 
-// завершить текущий поток
-// используется в слабом подтягивании
-fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
-{
-	uint32_t buf[2];
-	buf[1] = (uint32_t)terminate_code;
-
-	system_call(FOS_SYSCALL_FOS_THREAD_TERMINATE, buf);
-
-	return (fos_ret_t)buf[0];
-}
-
-
 // завершить поток с дескрипттором
 fos_ret_t SYS_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code)
 {
@@ -172,17 +146,6 @@ fos_ret_t SYS_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code)
 void SYS_FOS_HardFaultCall()
 {
 	system_call(FOS_HARD_FAULT_CALL_ID, NULL);
-}
-
-
-// зафиксировать ошибку
-// используется в слабом подтягивании
-void SYS_FOS_ErrorSet(fos_err_t *err)
-{
-	uint32_t buf[1];
-	buf[0] = (uint32_t)err;
-
-	system_call(FOS_SYSCALL_FOS_ERROR_SET, buf);
 }
 
 
@@ -362,12 +325,55 @@ fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
 }
 
 
+// is the thhread alive
+fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)desc;
+
+	system_call(FOS_SYSCALL_FOS_IS_THREAD_ALIVE, buf);
+
+	return (fos_ret_t)buf[0];
+}
 
 
+// усыпить текущий поток
+// используется в слабом подтягивании в file_sys.c, fwriter.c
+fos_ret_t SYS_FOS_Sleep(uint32_t time)
+{
+	uint32_t buf[2];
+	buf[1] = time;
+
+	system_call(FOS_SYSCALL_FOS_SLEEP, buf);
+
+	return (fos_ret_t)buf[0];
+}
 
 
+// зафиксировать ошибку
+// используется в слабом подтягивании
+// used via weak callback in the user_fos.c, fos_heap.c, fos_thread.c
+void SYS_FOS_ErrorSet(fos_err_t *err)
+{
+	uint32_t buf[1];
+	buf[0] = (uint32_t)err;
+
+	system_call(FOS_SYSCALL_FOS_ERROR_SET, buf);
+}
 
 
+// завершить текущий поток
+// используется в слабом подтягивании
+// used via weak callback in the fos_thread.c
+fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)terminate_code;
+
+	system_call(FOS_SYSCALL_FOS_THREAD_TERMINATE, buf);
+
+	return (fos_ret_t)buf[0];
+}
 
 
 

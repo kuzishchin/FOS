@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_scheduler.c
  * @brief     Scheduler. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -36,7 +36,7 @@ int16_t FOS_Schedule(fos_scheduler_t *ptr, volatile fos_thread_ptr *thr_desc_lis
 	uint8_t thr_pr;                    // приоритет потока
 	uint8_t ind;                       // индекс
 	uint8_t isActiveThr = 0;           // флаг наличия активного потока
-	uint8_t active_thr;                // индекс активного потока
+	uint8_t active_thr = 0;            // индекс активного потока
 
 	/*
 	 * Сбрасываем все списки

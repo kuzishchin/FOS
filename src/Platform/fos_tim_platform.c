@@ -26,25 +26,25 @@
 /*
  * Prototype of main timer start function
  */
-__weak void FOS_Platform_MainTim_Start(){}
+__weak void FOS_Platform_MainTim_Start(){ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();}
 
 
 /*
  * Prototype of main timer enable function
  */
-__weak void FOS_Platform_MainTim_Enable(){}
+__weak void FOS_Platform_MainTim_Enable(){ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();}
 
 
 /*
  * Prototype of main timer disable function
  */
-__weak void FOS_Platform_MainTim_Disable(){}
+__weak void FOS_Platform_MainTim_Disable(){ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();}
 
 
 /*
  * Prototype of main timer set counter function
  */
-__weak void FOS_Platform_MainTim_SetCounter(uint32_t val){}
+__weak void FOS_Platform_MainTim_SetCounter(uint32_t val){ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();}
 
 
 /*
@@ -52,6 +52,7 @@ __weak void FOS_Platform_MainTim_SetCounter(uint32_t val){}
  */
 __weak uint32_t FOS_Platform_MainTim_GetCounter()
 {
+	ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();
 	return 0;
 }
 
@@ -59,13 +60,13 @@ __weak uint32_t FOS_Platform_MainTim_GetCounter()
 /*
  * Prototype of main timer set auto-reload register
  */
-__weak void FOS_Platform_MainTim_SetARR(uint32_t val){}
+__weak void FOS_Platform_MainTim_SetARR(uint32_t val){ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();}
 
 
 /*
  * Prototype of call pending interrupt function by main timer
  */
-__weak void CallPendSV(){}
+__weak void CallPendSV(){ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();}
 
 
 

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.h
  * @brief     Gates for system call handling. Header file.
- * @version   V1.2.02
- * @date      23.01.2026
+ * @version   V1.2.04
+ * @date      18.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -24,10 +24,10 @@
 #define APPLICATION_FOS_CORE_FOS_GATES_H_
 
 
-#include "Kernel/user_fos.h"
+#include "Kernel/fos_kernel.h"
 
 
-// инициализировать шлюзы системных вызовов
+// initialization of all system gates
 void GATE_FOS_Init();
 
 

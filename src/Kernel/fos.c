@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.4.04
- * @date      03.03.2026
+ * @version   V1.5.00
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -925,6 +925,13 @@ fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data)
 		return FOS__FAIL;
 
 	return FOS_Queue32_WriteData(ptr, data);
+}
+
+
+// is thread run
+fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc)
+{
+	return FOS_IsThreadRun(FOS_GetThreadDesc(p, FOS_GetUdThreadId(p, desc)));
 }
 
 

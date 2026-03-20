@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.1.01
- * @date      03.03.2026
+ * @version   V1.2.00
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -65,17 +65,20 @@ static void FOS_Proc_StackErrorCallback(user_desc_t user_desc);
 
 // прототип функции завершения потока
 // реализация через системный вызов
+// defined in the fos_system.c
 __weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
 {
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 	return FOS__OK;
 }
 
 
 // прототип перехватчика ошибок
 // реализация через системный вызов
+// defined in the fos_system.c
 __weak void SYS_FOS_ErrorSet(fos_err_t *err)
 {
-
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 }
 
 
@@ -251,6 +254,20 @@ void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock)
 
 	if(!p->var.lock_flag)
 		FOS_ThreadWeakUp(p);
+}
+
+
+
+// is thread run
+fos_ret_t FOS_IsThreadRun(fos_thread_t *p)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+	if(p->var.mode == FOS__THREAD_RUN)
+		return FOS__OK;
+
+	return FOS__FAIL;
 }
 
 

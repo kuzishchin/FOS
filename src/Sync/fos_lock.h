@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.h
  * @brief     Object for locking threads. Header file.
- * @version   V1.2.02
- * @date      03.03.2026
+ * @version   V1.2.03
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

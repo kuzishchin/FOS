@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.2.02
- * @date      23.01.2026
+ * @version   V1.2.03
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,10 +31,6 @@
 // уступить другому процессу
 void SYS_FOS_Yield();
 
-// усыпить текущий поток
-// используется в слабом подтягивании
-fos_ret_t SYS_FOS_Sleep(uint32_t time);
-
 // взять бинарный светофор
 fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb);
 
@@ -59,19 +55,11 @@ fos_ret_t SYS_FOS_DeleteSemBinary(user_desc_t semb);
 // запустить поток с дескриптором
 fos_ret_t SYS_FOS_RunDesc(user_desc_t desc);
 
-// завершить текущий поток
-// используется в слабом подтягивании
-fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
-
 // завершить поток с дескрипттором
 fos_ret_t SYS_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code);
 
 // вызвать Hard Fault
 void SYS_FOS_HardFaultCall();
-
-// зафиксировать ошибку
-// используется в слабом подтягивании
-void SYS_FOS_ErrorSet(fos_err_t *err);
 
 // смотнитровать файловую систему
 void SYS_File_Mount(uint8_t dev_num);
@@ -115,6 +103,23 @@ fos_ret_t SYS_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr);
 
 // write data to queue32
 fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
+
+// is the thhread alive
+fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc);
+
+// усыпить текущий поток
+// используется в слабом подтягивании в file_sys.c, fwriter.c
+fos_ret_t SYS_FOS_Sleep(uint32_t time);
+
+// зафиксировать ошибку
+// используется в слабом подтягивании
+// used via weak callback in the user_fos.c, fos_heap.c, fos_thread.c
+void SYS_FOS_ErrorSet(fos_err_t *err);
+
+// завершить текущий поток
+// используется в слабом подтягивании
+// used via weak callback in the fos_thread.c
+fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
 
 
 #endif /* APPLICATION_FOS_SYSTEM_FOS_SYSTEM_H_ */

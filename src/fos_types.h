@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.3.03
- * @date      03.03.2026
+ * @version   V1.3.04
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -285,6 +285,7 @@ typedef enum
 
 } fos_err_enum;
 
+extern void FOS_INTERNAL_ERROR_OF_THE_CALLBACK(void);
 
 #endif /* APPLICATION_FOS_FOS_TYPES_H_ */
 

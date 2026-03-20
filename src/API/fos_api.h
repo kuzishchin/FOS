@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.h
  * @brief     API of OS for user applications. Header file.
- * @version   V1.3.03
- * @date      05.02.2026
+ * @version   V1.3.05
+ * @date      18.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,6 +31,7 @@
  * Yield to another process
  * Thread-safe, call from the process that yields to another one
  * Do not call from outside the threads (it has no effect)
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  */
 void API_FOS_Yield();
 
@@ -38,7 +39,8 @@ void API_FOS_Yield();
 /*
  * Send current process to sleep
  * Thread-safe, call from the thread that is sent to sleep
- * Do not call from outside the threads (calling outside the thread cause blocking last active thread)
+ * Do not call from outside the threads (it has no effect and returns FOS_FAIL)
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  * time - sleep timeout in milliseconds, if 'FOS_INF_TIME' - infinite, no timeout
  * Returns execution status
  * Always returns FOS__OK under normal operation
@@ -49,7 +51,8 @@ fos_ret_t API_FOS_Sleep(uint32_t time);
 /*
  * Acquire binary semaphore
  * Thread-safe, call from the thread that is acquiring semaphore
- * Do not call from outside the threads (calling outside the thread cause acquiring semaphore by last active thread and it returns unpredictable result)
+ * Do not call from outside the threads (it has no effect and returns FOS_FAIL)
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  * semb - binary semaphore user descriptor
  * Returns execution status
  * FOS__FAIL - if semb is wrong or timeout is occurred
@@ -151,7 +154,8 @@ fos_ret_t API_FOS_RunDesc(user_desc_t desc);
 /**
  * Terminate the current thread
  * Thread-safe, call from the thread intended for termination
- * Do not call from outside the threads (it terminates last active thread)
+ * Do not call from outside the threads (it has no effect and returns FOS_FAIL)
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  * terminate_code - termination code, describes the termination result (0 - successful termination, >0 - user defined any error code)
  * Returns execution status
  * Always returns FOS__OK under normal operation
@@ -174,7 +178,7 @@ fos_ret_t API_FOS_TerminateDesc(user_desc_t desc, uint8_t terminate_code);
 /*
  * This method check if the thread is alive
  * Thread-safe, call from the thread or from the main loop
- * Do not call from interrupts
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  * desc - descriptor of the checked thread
  * Returns thread status
  * FOS__OK - is alive
@@ -185,7 +189,8 @@ fos_ret_t API_FOS_IsThreadAlive(user_desc_t desc);
 /*
  * Blocking current thread till desc thread is terminated
  * Thread-safe, call from the thread
- * Do not call from outside the threads (call outside the thread cause joining to last active thread)
+ * Do not call from outside the threads (it has no effect and returns FOS_FAIL)
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  * desc - descriptor to the being terminated thread
  * Returns execution status
  * FOS__FAIL - if desc is wrong
@@ -250,7 +255,8 @@ fos_ret_t API_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
 /*
  * Acquire counting semaphore
  * Thread-safe, call from the thread that is acquiring semaphore
- * Do not call from outside the threads  (call outside the thread cause acquiring semaphore by last active thread and it returns unpredictable result)
+ * Do not call from outside the threads (it has no effect and returns FOS_FAIL)
+ * Do not call from interrupts (it can lead to unpredictable behavior)
  * semc - binary semaphore user descriptor
  * Returns execution status
  * FOS__FAIL - if semc is wrong or timeout is occurred

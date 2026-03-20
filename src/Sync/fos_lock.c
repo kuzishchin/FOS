@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.2.02
- * @date      03.03.2026
+ * @version   V1.2.03
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,17 +31,19 @@ static uint8_t Private_FOS_Lock_IncInd(uint8_t ind);
 
 // заглушка на блокировку потока с id
 // реализация через функцию ядра
+// defined in the user_fos.c
 __weak void FOS_Lock_LockThread(uint8_t thr_id)
 {
-
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 }
 
 
 // заглушка на разблокировку потока с id
 // реализация через функцию ядра
+// defined in the user_fos.c
 __weak void FOS_Lock_UnlockThread(uint8_t thr_id)
 {
-
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 }
 
 

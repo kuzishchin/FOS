@@ -1,5 +1,12 @@
 # FOS versions
 
+## FOS v1.0.4 build 03 18.03.2026 api-1
+* Added check conditions in the some API functions
+* Added protection in the weak callback mechanism
+* IsThreadAlive moved out to the gate
+* Fixed bug with false positive check at terminated static thread
+* Some code refactoring is done
+
 ## FOS v1.0.3 build 02 03.03.2026 api-1
 * Fix some bugs in the semaphore logic
 * Done settings optimization

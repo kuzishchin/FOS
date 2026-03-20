@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.4.04
- * @date      03.03.2026
+ * @version   V1.5.00
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -191,6 +191,9 @@ fos_ret_t FOS_Queue32ReadData(fos_t *p, user_desc_t que, uint32_t* data_ptr);
 
 // write data
 fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data);
+
+// is thread run
+fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc);
 
 // get the system stack debug info
 fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p);

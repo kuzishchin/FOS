@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.1.01
- * @date      03.03.2026
+ * @version   V1.2.00
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -105,6 +105,9 @@ void FOS_ThreadLock(fos_thread_t *p, uint32_t lock);
 
 // снять блокировку с потока
 void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock);
+
+// is thread run
+fos_ret_t FOS_IsThreadRun(fos_thread_t *p);
 
 // обработать состояния всех потоков
 void FOS_AllThreadProcState(volatile fos_thread_ptr *thr_desc_list, uint8_t thr_max_ind);

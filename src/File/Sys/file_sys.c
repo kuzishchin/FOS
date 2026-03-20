@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      file_sys.c
  * @brief     Abstraction layer between the file system and OS. Source file.
- * @version   V1.0.01
- * @date      06.02.2026
+ * @version   V1.0.02
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -45,8 +45,10 @@ static file_err_t Private_Unmount(uint8_t dev_num);
 
 // уступить другому процессу
 // реализация через системный вызов
+// defined in the fos_system.c
 __weak fos_ret_t SYS_FOS_Sleep(uint32_t time)
 {
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 	return FOS__OK;
 }
 

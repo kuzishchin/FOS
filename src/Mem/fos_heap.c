@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.c
  * @brief     Abstraction layer for heap. Source file.
- * @version   V1.0.03
- * @date      03.03.2026
+ * @version   V1.0.04
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -42,9 +42,10 @@ static void Private_FOS_Heap_ThreadsHeap_ErrCbk();
 
 // прототип перехватчика ошибок
 // реализация через системный вызов
+// defined in the fos_system.c
 __weak void SYS_FOS_ErrorSet(fos_err_t *err)
 {
-
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 }
 
 

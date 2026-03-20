@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.c
  * @brief     OS start up functions. Source file.
- * @version   V1.0.01
- * @date      11.03.2024
+ * @version   V1.0.03
+ * @date      18.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -33,7 +33,7 @@
  */
 __weak void USER_FOS_InitAndRun()
 {
-
+	ERROR_PLEASE_IMPLEMENT_THE_CALLBACK();
 }
 
 
@@ -50,11 +50,11 @@ void RUN_FOS_InitAndRun()
 	SL_Delay(FOS_STAB_TIME_MS);                                  // stab time
 
 	GATE_FOS_Init();                     // gate inititalization
-	USER_FOS_Init();                     // kernel variables initialization
+	Kernel_FOS_Init();                     // kernel variables initialization
 
 	USER_FOS_InitAndRun();               // user defined initialization
 
-	USER_FOS_Start();                    // OS start
+	Kernel_FOS_Start();                    // OS start
 }
 
 
@@ -64,7 +64,7 @@ void RUN_FOS_InitAndRun()
  */
 void RUN_FOS_MainLoopProc()
 {
-	USER_FOS_MainLoopProc();
+	Kernel_FOS_MainLoopProc();
 }
 
 

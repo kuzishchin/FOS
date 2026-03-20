@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fwriter.c
  * @brief     API for the file writer object. Source file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -38,8 +38,10 @@ static fos_ret_t FWriter_SetPath(fwriter_t *p, fsys_path_t *path);
 
 // yield to another process
 // implemented with system call, not indicated in the header file
+// defined in the fos_system.c
 __weak fos_ret_t SYS_FOS_Sleep(uint32_t time)
 {
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 	return FOS__OK;
 }
 

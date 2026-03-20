@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_scheduler.h
  * @brief     Scheduler. Header file.
- * @version   V1.0.00
- * @date      14.02.2024
+ * @version   V1.0.01
+ * @date      17.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
