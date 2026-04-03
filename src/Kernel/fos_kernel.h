@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.h
  * @brief     Kernel. Header file.
- * @version   V1.5.00
- * @date      18.03.2026
+ * @version   V1.5.07
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -41,6 +41,15 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init);
 
 // start the thread with the picked descriptor
 fos_ret_t Kernel_FOS_RunDesc(user_desc_t desc);
+
+// start the thread with the picked descriptor with argument
+fos_ret_t Kernel_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len);
+
+// get thread arg pointer
+uint8_t* Kernel_FOS_GetThreadArgPtr();
+
+// get thread arg len
+uint32_t Kernel_FOS_GetThreadArgLen();
 
 // terminate the thread with the picked descriptor
 fos_ret_t Kernel_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code);
@@ -111,6 +120,10 @@ fos_thread_dbg_t* Kernel_FOS_GetSysStackDbgInfo();
 // get the scheduler debug info
 fos_scheduler_dbg_t* Kernel_FOS_GetSchedulerDbgInfo();
 
+/*
+ * **************************************************************
+ */
+
 // create the file writer object
 // used via weak callback in the fos_api.c
 fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len);
@@ -126,6 +139,42 @@ fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semc);
 // write data to queue32
 // used via weak callback in the fos_api.c
 fos_ret_t Kernel_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
+
+// set note to thread by user descriptor
+// used via weak callback in the fos_api.c
+fos_ret_t Kernel_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note);
+
+/*
+ * **************************************************************
+ */
+
+// get user descriptor of the current thread
+user_desc_t Kernel_FOS_GetCurrentThreadUd();
+
+// create the mutex
+user_desc_t Kernel_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, uint8_t pcp_priority);
+
+// delete the mutex
+fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex);
+
+// take the mutex with picked descriptor
+fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex);
+
+// get taking status of the mutex and set owner
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t Kernel_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex);
+
+// release mutex
+fos_ret_t Kernel_FOS_MutexGive(user_desc_t mutex);
+
+// allocate thread local memory
+void* Kernel_FOS_LocalAlloc(uint32_t size_bytes);
+
+// free thread local memory
+fos_ret_t Kernel_FOS_LocalFree(void* ptr);
+
+// get thread note pointer
+fos_thr_note_t* Kernel_FOS_GetThreadNotePtr();
 
 // OS main loop proc
 void Kernel_FOS_MainLoopProc();

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.2.00
- * @date      17.03.2026
+ * @version   V1.2.01
+ * @date      01.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -307,6 +307,114 @@ void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc)
 	}
 #endif
 }
+
+
+// set local thread state
+fos_ret_t FOS_Thread_SetHeapState(fos_thread_t *p, fos_ret_t state)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+	switch(state)
+	{
+	case FOS__OK:
+		p->var.heap_sw = FOS__ENABLE;
+	break;
+
+	case FOS__FAIL:
+		p->var.heap_sw = FOS__DISABLE;
+	break;
+	}
+
+	return FOS__OK;
+}
+
+
+// add arg to the thread
+fos_ret_t FOS_Thread_AddArg(fos_thread_t *p, uint8_t* arg_ptr, uint32_t arg_len)
+{
+	if((p == NULL) || (arg_ptr == NULL) || (arg_len == 0))
+		return FOS__FAIL;
+
+	if(p->var.heap_sw != FOS__ENABLE)
+		return FOS__FAIL;
+
+	p->var.arg_ptr = arg_ptr;
+	p->var.arg_len = arg_len;
+
+	return FOS__OK;
+}
+
+
+// get thread argument pointer
+uint8_t* FOS_Thread_GetArgPtr(fos_thread_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	return (uint8_t*)p->var.arg_ptr;
+}
+
+
+// get thread argument len
+uint32_t FOS_Thread_GetArgLen(fos_thread_t *p)
+{
+	if(p == NULL)
+		return 0;
+
+	return p->var.arg_len;
+}
+
+
+// add note pointer
+fos_ret_t FOS_Thread_AddNotePtr(fos_thread_t *p, fos_thr_note_t *note_ptr)
+{
+	if((p == NULL) || (note_ptr == NULL))
+		return FOS__FAIL;
+
+	memset(note_ptr, 0, sizeof(fos_thr_note_t));
+	p->var.note_ptr = note_ptr;
+
+	return FOS__OK;
+}
+
+
+// set note
+fos_ret_t FOS_Thread_SetNote(fos_thread_t *p, fos_note_type_t type, uint32_t note)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+	if(p->var.heap_sw != FOS__ENABLE)
+		return FOS__FAIL;
+
+	if(p->var.note_ptr == NULL)
+		return FOS__FAIL;
+
+	switch(type)
+	{
+	case FOS_NOTE_TYPE__SYS:
+		p->var.note_ptr->sys |= note;
+	break;
+
+	case FOS_NOTE_TYPE__USER:
+		p->var.note_ptr->user |= note;
+	break;
+	}
+
+	return FOS__OK;
+}
+
+
+// get note pointer
+fos_thr_note_t* FOS_Thread_GetNotePtr(fos_thread_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	return (fos_thr_note_t*)p->var.note_ptr;
+}
+
 
 
 

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.5.00
- * @date      17.03.2026
+ * @version   V1.5.06
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,6 +28,7 @@
 #include "Thread/fos_scheduler.h"
 #include "Sync/fos_semb.h"
 #include "Sync/fos_sem.h"
+#include "Sync/fos_mutex.h"
 #include "File/fwriter.h"
 #include "Data/fos_queue32.h"
 
@@ -63,8 +64,11 @@ typedef struct
 	volatile uint8_t               semc_max_ind;                         // maximum index of registered counting semaphore
 	volatile fos_semaphore_cnt_ptr semc_desc_list[FOS_SEM_COUNTING_CNT]; // list of counting semaphore descriptors
 
-	volatile uint8_t         queue32_max_ind;                         // maximum index of registered queue32
-	volatile fos_queue32_ptr queue32_desc_list[FOS_SEM_QUEUE_32_CNT]; // list of queue32 descriptors
+	volatile uint8_t         queue32_max_ind;                          // maximum index of registered queue32
+	volatile fos_queue32_ptr queue32_desc_list[FOS_SEM_QUEUE_32_CNT];  // list of queue32 descriptors
+
+	volatile uint8_t       mutex_max_ind;                              // maximum index of registered mutex
+	volatile fos_mutex_ptr mutex_desc_list[FOS_MUTEX_CNT];             // list of mutex descriptors
 
 	volatile uint8_t     fwriter_max_id;                               // maximum index of registered writer object
 	volatile fwriter_ptr fwriter_desc_list[FOS_FWRITER_CNT];           // list of writer object descriptors
@@ -101,10 +105,19 @@ uint8_t FOS_GetUdThreadId(fos_t *p, user_desc_t user_desc);
 user_desc_t FOS_GetThreadSembId(fos_t *p, uint8_t id);
 
 // thread registration
-fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr);
+fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr, uint8_t *id_ptr);
 
 // start thread with identifier
 fos_ret_t FOS_RunId(fos_t *p, uint8_t id);
+
+// start thread with identifier and with arg
+fos_ret_t FOS_RunIdWithArg(fos_t *p, uint8_t id, uint8_t* arg_ptr, uint32_t arg_len);
+
+// get thread arg pointer
+uint8_t* FOS_GetThreadArgPtr(fos_t *p);
+
+// get thread arg len
+uint32_t FOS_GetThreadArgLen(fos_t *p);
 
 // terminate thread with identifier
 fos_ret_t FOS_TerminateId(fos_t *p, uint8_t id, int32_t terminate_code);
@@ -194,6 +207,37 @@ fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data);
 
 // is thread run
 fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc);
+
+// get user descriptor of parent thread
+user_desc_t FOS_GetThreadParentUd(fos_t *p);
+
+// register mutex
+fos_ret_t FOS_MutexReg(fos_t *p, fos_mutex_t *mut);
+
+// join binary semaphore to mutex
+fos_ret_t FOS_MutexJoinToSemBinary(fos_t *p, fos_mutex_t *mut, user_desc_t semb);
+
+// delete mutex
+fos_ret_t FOS_MutexDelete(fos_t *p, user_desc_t mutex);
+
+// acquire mutex
+fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex);
+
+// get taking status of the mutex and set owner
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t FOS_MutexSetOwnerAndTakeStat(fos_t *p, user_desc_t mutex);
+
+// release mutex
+fos_ret_t FOS_MutexGive(fos_t *p, user_desc_t mutex);
+
+// get id of current thread
+uint8_t FOS_GetCurrentThreadId(fos_t *p);
+
+// set note to thread by id
+fos_ret_t FOS_SetNoteId(fos_t *p, uint8_t id, fos_note_type_t type, uint32_t note);
+
+// get thread note pointer
+fos_thr_note_t* FOS_GetThreadNotePtr(fos_t *p);
 
 // get the system stack debug info
 fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p);

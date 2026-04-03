@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.c
  * @brief     Abstraction layer for heap. Source file.
- * @version   V1.0.04
- * @date      17.03.2026
+ * @version   V1.0.05
+ * @date      31.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -24,6 +24,7 @@
 
 #include "Mem/fos_heap.h"
 #include "DMem/dmem.h"
+#include <string.h>
 
 
 static uint8_t kernel_heap_array[FOS_KERNEL_HEAP_SIZE];       // массив для кучи ядра
@@ -31,6 +32,8 @@ static uint8_t threads_heap_array[FOS_THREADS_HEAP_SIZE];     // массив д
 
 dmem_heap_t kernel_heap;      // куча ядра
 dmem_heap_t threads_heap;     // куча процессов
+
+static dmem_heap_t* local_heaps_list[FOS_MAX_THR_CNT];
 
 
 // обработчик ошибки кучи ядра
@@ -116,7 +119,58 @@ void FOS_Heap_ThreadsHeap_Free(void* ptr)
 }
 
 
+// create the local heap of the thread
+fos_ret_t FOS_Heap_LocalHeap_Create(uint8_t thr_id, uint8_t* mem_ptr, uint32_t mem_size)
+{
+	if((thr_id >= FOS_MAX_THR_CNT) || (mem_ptr == NULL) || (mem_size == 0))
+		return FOS__FAIL;
 
+	dmem_heap_t* ptr = local_heaps_list[thr_id];      // если объект уже создан, переиспользуем его
+	if(ptr == NULL)                                   // иначе, создаём
+	{
+		ptr = (dmem_heap_t*)FOS_Heap_KernelHeap_Alloc(sizeof(dmem_heap_t));
+		local_heaps_list[thr_id] = ptr;
+	}
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	// сбрасываем его
+	memset(ptr, 0, sizeof(dmem_heap_t));
+
+	// затем инициализируем
+	dmem_heap_init_t init = {0};
+	init.array_ptr = mem_ptr;
+	init.array_size_byte = mem_size;
+	init.dmem_err_cbk_t = NULL;
+	dmem_ret_t ret = DMem_HeapInit(ptr, &init);
+	if(ret != DMEM_OK)
+		return FOS__FAIL;
+
+	DMem_CheckHeap(ptr);
+
+	return FOS__OK;
+}
+
+
+// allocate local heap
+void* FOS_Heap_LocalHeap_Alloc(uint32_t size_bytes, uint8_t thr_id)
+{
+	if(thr_id >= FOS_MAX_THR_CNT)
+		return NULL;
+	void* ptr = DMem_Alloc(local_heaps_list[thr_id], size_bytes);
+	DMem_CheckHeap(local_heaps_list[thr_id]);
+	return ptr;
+}
+
+
+// free local heap
+void FOS_Heap_LocalHeap_Free(void* ptr, uint8_t thr_id)
+{
+	if(thr_id >= FOS_MAX_THR_CNT)
+		return;
+	DMem_Free(local_heaps_list[thr_id], ptr);
+	DMem_CheckHeap(local_heaps_list[thr_id]);
+}
 
 
 // обработчик ошибки кучи ядра

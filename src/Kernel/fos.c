@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.5.00
- * @date      17.03.2026
+ * @version   V1.5.06
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -63,6 +63,15 @@ static uint8_t FOS_GetUdQueue32Id(fos_t *p, user_desc_t user_desc);
 // get queue32 descriptor by its identifier
 static fos_queue32_t* FOS_GetQueue32Desc(fos_t *p, uint8_t id);
 
+// get mutex identifier by user defined descriptor
+static uint8_t FOS_GetUdMutexId(fos_t *p, user_desc_t user_desc);
+
+// get mutex identifier by its descriptor
+static uint8_t FOS_GetMutexId(fos_t *p, fos_mutex_t *mut);
+
+// get mutex descriptor by its identifier
+static fos_mutex_t* FOS_GetMutexDesc(fos_t *p, uint8_t id);
+
 // OS kernel initialization
 static void Private_FOS_Core_Init(fos_t *p);
 
@@ -87,6 +96,9 @@ static void Private_FOS_UpdSemBinaryMaxInd(fos_t *p);
 // update maximum index of counting semaphore descriptor table
 static void Private_FOS_UpdSemCntMaxInd(fos_t *p);
 
+// update maximum index of mutex descriptor table
+static void Private_FOS_UpdMutexMaxInd(fos_t *p);
+
 // update maximum index of queue32 descriptor table
 static void Private_FOS_UpdQueue32MaxInd(fos_t *p);
 
@@ -101,9 +113,6 @@ static void Private_FOS_UnlinkThread(fos_t *p, uint8_t thr_id);
 
 // get current thread user descriptor
 static user_desc_t Private_FOS_GetCurrentThreadUd(fos_t *p);
-
-// get user descriptor of parent thread
-static user_desc_t Private_FOS_GetThreadParentUd(fos_t *p);
 
 // add object into turn to delete
 static fos_ret_t Private_FOS_AddOjectToDelList(fos_t *p, uint32_t adr, uint8_t heap_type);
@@ -192,7 +201,7 @@ user_desc_t FOS_GetThreadSembId(fos_t *p, uint8_t id)
 
 
 // thread registration
-fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr)
+fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr, uint8_t *id_ptr)
 {
 	if((p == NULL) || (thr == NULL))
 		return FOS__FAIL;
@@ -210,7 +219,7 @@ fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr)
 		return FOS__FAIL;
 
 	// assign a unique user defined identifier to the thread
-	if(FOS_Thread_SetUserDesc(thr, Private_FOS_GenUserDesc(p), Private_FOS_GetThreadParentUd(p)) != FOS__OK)
+	if(FOS_Thread_SetUserDesc(thr, Private_FOS_GenUserDesc(p), FOS_GetThreadParentUd(p)) != FOS__OK)
 		return FOS__FAIL;
 
 	// set thread registration flag
@@ -220,6 +229,9 @@ fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr)
 	v->thread_desc_list[ind] = thr;        // insert the pointer to an available section
 
 	Private_FOS_UpdThreadMaxInd(p);        // update maximum index
+
+	if(id_ptr)                             // return id
+		*id_ptr = ind;
 
 	return FOS__OK;
 }
@@ -238,6 +250,56 @@ fos_ret_t FOS_RunId(fos_t *p, uint8_t id)
 
 	// set thread run flag
 	return FOS_Thread_SetRunFlag(thr);
+}
+
+
+// start thread with identifier and with arg
+fos_ret_t FOS_RunIdWithArg(fos_t *p, uint8_t id, uint8_t* arg_ptr, uint32_t arg_len)
+{
+	if((p == NULL) || (arg_ptr == NULL))
+		return FOS__FAIL;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
+	if(thr == NULL)
+		return FOS__FAIL;
+
+	fos_ret_t ret = FOS_Thread_AddArg(thr, arg_ptr, arg_len);
+	if(ret != FOS__OK)
+		return ret;
+
+	// set thread run flag
+	return FOS_Thread_SetRunFlag(thr);
+}
+
+
+// get thread arg pointer
+uint8_t* FOS_GetThreadArgPtr(fos_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, p->var.current_thr);
+	if(thr == NULL)
+		return NULL;
+
+	return FOS_Thread_GetArgPtr(thr);
+}
+
+
+// get thread arg len
+uint32_t FOS_GetThreadArgLen(fos_t *p)
+{
+	if(p == NULL)
+		return 0;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, p->var.current_thr);
+	if(thr == NULL)
+		return 0;
+
+	return FOS_Thread_GetArgLen(thr);
 }
 
 
@@ -935,6 +997,233 @@ fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc)
 }
 
 
+// get user descriptor of parent thread
+user_desc_t FOS_GetThreadParentUd(fos_t *p)
+{
+	if(FOS_System_GetWorkMode() == FOS__KERNEL_WORK_MODE)
+		return FOS_KERNEL_USER_DESC;
+	return Private_FOS_GetCurrentThreadUd(p);
+}
+
+
+// get mutex identifier by user defined descriptor
+static uint8_t FOS_GetUdMutexId(fos_t *p, user_desc_t user_desc)
+{
+	if((p == NULL) || (user_desc == FOS_WRONG_USER_DESC))
+		return FOS_WRONG_MUTEX_ID;
+
+	for(uint8_t i = 0; i <= p->var.mutex_max_ind; i++)
+		if(p->var.mutex_desc_list[i])
+			if(p->var.mutex_desc_list[i]->user_desc == user_desc)
+				return i;
+
+	return FOS_WRONG_MUTEX_ID;
+}
+
+
+// get mutex identifier by its descriptor
+static uint8_t FOS_GetMutexId(fos_t *p, fos_mutex_t *mut)
+{
+	if(p == NULL)
+		return FOS_WRONG_MUTEX_ID;
+
+	for(uint8_t i = 0; i < FOS_MUTEX_CNT; i++)
+		if(p->var.mutex_desc_list[i] == mut)
+			return i;
+
+	return FOS_WRONG_MUTEX_ID;
+}
+
+
+// get mutex descriptor by its identifier
+static fos_mutex_t* FOS_GetMutexDesc(fos_t *p, uint8_t id)
+{
+	if(p == NULL)
+		return NULL;
+
+	if(id > p->var.mutex_max_ind)
+		return NULL;
+
+	return p->var.mutex_desc_list[id];
+}
+
+
+// register mutex
+fos_ret_t FOS_MutexReg(fos_t *p, fos_mutex_t *mut)
+{
+	if((p == NULL) || (mut == NULL))
+		return FOS__FAIL;
+
+	uint8_t ind = 0;
+	fos_var_t *v = &p->var;
+
+	// search for duplicated semaphores
+	if(FOS_GetMutexId(p, mut) != FOS_WRONG_MUTEX_ID)
+		return FOS__FAIL;
+
+	// search for available section
+	ind = FOS_GetMutexId(p, NULL);
+	if(ind == FOS_WRONG_MUTEX_ID)
+		return FOS__FAIL;
+
+	// assign unique user-defined descriptor to the mutex
+	if(FOS_Mutex_SetUserDesc(mut, Private_FOS_GenUserDesc(p)) != FOS__OK)
+		return FOS__FAIL;
+
+	v->mutex_desc_list[ind] = mut;        // insert the pointer into the available section
+
+	Private_FOS_UpdMutexMaxInd(p);        // update the maximum index
+
+	return FOS__OK;
+}
+
+
+// join binary semaphore to mutex
+fos_ret_t FOS_MutexJoinToSemBinary(fos_t *p, fos_mutex_t *mut, user_desc_t semb)
+{
+	if((p == NULL) || (mut == NULL) || (semb == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdSemaphoreBinaryId(p, semb);
+	if(id == FOS_WRONG_SEM_BIN_ID)
+		return FOS__FAIL;
+
+	FOS_Mutex_SetSemaphorePtr(mut, FOS_GetSemaphoreBinaryDesc(p, id));
+
+	return FOS__OK;
+}
+
+
+// delete mutex
+fos_ret_t FOS_MutexDelete(fos_t *p, user_desc_t mutex)
+{
+	if((p == NULL) || (mutex == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdMutexId(p, mutex);
+	if(id == FOS_WRONG_MUTEX_ID)
+		return FOS__FAIL;
+
+	fos_mutex_t *ptr = FOS_GetMutexDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
+		return FOS__FAIL;
+
+	if(ptr->semb_ptr)
+		FOS_SemBinaryDelete(p, ptr->semb_ptr->user_desc);
+
+	FOS_Mutex_DeInit(ptr);
+
+	p->var.mutex_desc_list[id] = NULL;
+
+	Private_FOS_UpdMutexMaxInd(p);    // update the maximum index
+
+	return FOS__OK;
+}
+
+
+// acquire mutex
+fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex)
+{
+	if((p == NULL) || (mutex == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdMutexId(p, mutex);
+	if(id == FOS_WRONG_MUTEX_ID)
+		return FOS__FAIL;
+
+	fos_mutex_t *ptr = FOS_GetMutexDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_Mutex_Take(ptr, p->var.current_thr);
+}
+
+
+// get taking status of the mutex and set owner
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t FOS_MutexSetOwnerAndTakeStat(fos_t *p, user_desc_t mutex)
+{
+	if((p == NULL) || (mutex == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdMutexId(p, mutex);
+	if(id == FOS_WRONG_MUTEX_ID)
+		return FOS__FAIL;
+
+	fos_mutex_t *ptr = FOS_GetMutexDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_Mutex_SetOwnerAndTakeStat(ptr, p->var.current_thr);
+}
+
+
+// release mutex
+fos_ret_t FOS_MutexGive(fos_t *p, user_desc_t mutex)
+{
+	if((p == NULL) || (mutex == FOS_WRONG_USER_DESC))
+		return FOS__FAIL;
+
+	uint8_t id = FOS_GetUdMutexId(p, mutex);
+	if(id == FOS_WRONG_MUTEX_ID)
+		return FOS__FAIL;
+
+	fos_mutex_t *ptr = FOS_GetMutexDesc(p, id);
+	if(ptr == NULL)
+		return FOS__FAIL;
+
+	return FOS_Mutex_Give(ptr, p->var.current_thr);
+}
+
+
+// get id of current thread
+uint8_t FOS_GetCurrentThreadId(fos_t *p)
+{
+	if(p == NULL)
+		return FOS_WRONG_THREAD_ID;
+
+	return p->var.current_thr;
+}
+
+
+// set note to thread by id
+fos_ret_t FOS_SetNoteId(fos_t *p, uint8_t id, fos_note_type_t type, uint32_t note)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
+	if(thr == NULL)
+		return FOS__FAIL;
+
+	uint32_t x;
+	ENTER_CRITICAL(x);
+	fos_ret_t ret = FOS_Thread_SetNote(thr, type, note);
+	LEAVE_CRITICAL(x);
+
+	return ret;
+}
+
+
+// get thread note pointer
+fos_thr_note_t* FOS_GetThreadNotePtr(fos_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, p->var.current_thr);
+	if(thr == NULL)
+		return NULL;
+
+	return FOS_Thread_GetNotePtr(thr);
+}
+
+
 // get the system stack debug info
 fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p)
 {
@@ -1107,6 +1396,20 @@ static void Private_FOS_UpdSemCntMaxInd(fos_t *p)
 }
 
 
+// update maximum index of mutex descriptor table
+static void Private_FOS_UpdMutexMaxInd(fos_t *p)
+{
+	uint8_t ind = 0;
+
+	// calculate maximum index
+	for(uint8_t i = 0; i < FOS_MUTEX_CNT; i++)
+		if(p->var.mutex_desc_list[i] != NULL)
+			ind = i;
+
+	p->var.mutex_max_ind = ind;                // record the maximum index into a variable
+}
+
+
 // update maximum index of queue32 descriptor table
 static void Private_FOS_UpdQueue32MaxInd(fos_t *p)
 {
@@ -1187,6 +1490,7 @@ static void Private_FOS_UnlinkThread(fos_t *p, uint8_t thr_id)
 {
 	fos_semaphore_binary_t *semb;
 	fos_semaphore_cnt_t    *semc;
+	fos_mutex_t            *mut;
 
 	/*
 	 * Unlink thread from all binary semaphores
@@ -1211,6 +1515,18 @@ static void Private_FOS_UnlinkThread(fos_t *p, uint8_t thr_id)
 			FOS_SemaphoreCnt_UnlinkThread(semc, thr_id);
 		}
 	}
+
+	/*
+	 * Unlink thread from all mutexes
+	 */
+	for(uint8_t i = 0; i <= p->var.mutex_max_ind; i++)
+	{
+		mut = FOS_GetMutexDesc(p, i);
+		if(mut)
+		{
+			FOS_Mutex_UnlinkThread(mut, thr_id);
+		}
+	}
 }
 
 
@@ -1223,15 +1539,6 @@ static user_desc_t Private_FOS_GetCurrentThreadUd(fos_t *p)
 		return FOS_WRONG_USER_DESC;
 
 	return thr->user_desc;
-}
-
-
-// get user descriptor of parent thread
-static user_desc_t Private_FOS_GetThreadParentUd(fos_t *p)
-{
-	if(FOS_System_GetWorkMode() == FOS__KERNEL_WORK_MODE)
-		return FOS_KERNEL_USER_DESC;
-	return Private_FOS_GetCurrentThreadUd(p);
 }
 
 
@@ -1258,19 +1565,10 @@ static fos_ret_t Private_FOS_AddOjectToDelList(fos_t *p, uint32_t adr, uint8_t h
 }
 
 
+
 /*
  * Currently not used
  */
-
-// get id of current thread
-/*uint8_t FOS_GetCurrentThreadId(fos_t *p)
-{
-	if(p == NULL)
-		return FOS_WRONG_THREAD_ID;
-
-	return p->var.current_thr;
-}*/
-
 
 // wake up thread
 /*fos_ret_t FOS_WeakUpId(fos_t *p, uint8_t id)

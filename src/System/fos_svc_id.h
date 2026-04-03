@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svc_id.h
  * @brief     System call IDs. Header file.
- * @version   V1.2.04
- * @date      18.03.2026
+ * @version   V1.2.09
+ * @date      01.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -52,9 +52,26 @@
 #define FOS_SYSCALL_FOS_SEMB_TAKE_STAT      0x19        // fos_ret_t Kernel_FOS_SemBinaryTakeStat(user_desc_t semb);
 #define FOS_SYSCALL_FOS_SEMC_TAKE_STAT      0x1A        // fos_ret_t Kernel_FOS_SemCntTakeStat(user_desc_t semc);
 #define FOS_SYSCALL_FOS_IS_THREAD_ALIVE     0x1B        // fos_ret_t KernelFOS_IsThreadAlive(user_desc_t desc);
+#define FOS_SYSCALL_FOS_GET_CURRENT_THR_UD  0x1C        // user_desc_t Kernel_FOS_GetCurrentThreadUd();
+#define FOS_SYSCALL_FOS_CREATE_MUTEX        0x1D        // user_desc_t Kernel_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type);
+#define FOS_SYSCALL_FOS_DELETE_MUTEX        0x1E        // fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex);
+#define FOS_SYSCALL_FOS_MUTEX_TAKE          0x2F        // fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex);
+#define FOS_SYSCALL_FOS_MUTEX_SO_TAKE_STAT  0x20        // fos_ret_t Kernel_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex);
+#define FOS_SYSCALL_FOS_MUTEX_GIVE          0x21        // fos_ret_t Kernel_FOS_MutexGive(user_desc_t mutex);
+#define FOS_SYSCALL_FOS_LOCAL_ALLOC         0x22        // void* Kernel_FOS_LocalAlloc(uint32_t size_bytes);
+#define FOS_SYSCALL_FOS_LOCAL_FREE          0x23        // fos_ret_t Kernel_FOS_LocalFree(void* ptr);
+#define FOS_SYSCALL_FOS_THREAD_RUN_WITH_ARG 0x24        // fos_ret_t Kernel_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len);
+#define FOS_SYSCALL_FOS_THREAD_ARG_GET_PTR  0x25        // uint8_t* Kernel_FOS_GetThreadArgPtr();
+#define FOS_SYSCALL_FOS_THREAD_ARG_GET_LEN  0x26        // uint32_t Kernel_FOS_GetThreadArgLen();
+#define FOS_SYSCALL_FOS_THREAD_SET_NOTE     0x27        // fos_ret_t Kernel_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note);
+#define FOS_SYSCALL_FOS_THREAD_NOTE_GET_PTR 0x28        // fos_thr_note_t* Kernel_FOS_GetThreadNotePtr();
+
 
 
 #endif /* APPLICATION_FOS_FOS_SVC_ID_H_ */
+
+
+
 
 
 

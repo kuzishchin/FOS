@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.2.03
- * @date      17.03.2026
+ * @version   V1.2.09
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -266,7 +266,7 @@ user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t
 
 	system_call(FOS_SYSCALL_FOS_QUEUE_32_CREATE, buf);
 
-	return (fos_ret_t)buf[0];
+	return (user_desc_t)buf[0];
 }
 
 
@@ -352,7 +352,7 @@ fos_ret_t SYS_FOS_Sleep(uint32_t time)
 
 // зафиксировать ошибку
 // используется в слабом подтягивании
-// used via weak callback in the user_fos.c, fos_heap.c, fos_thread.c
+// used via weak callback in the fos_kernel.c, fos_heap.c, fos_thread.c
 void SYS_FOS_ErrorSet(fos_err_t *err)
 {
 	uint32_t buf[1];
@@ -374,6 +374,166 @@ fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
 
 	return (fos_ret_t)buf[0];
 }
+
+
+// get user descriptor of the current thread
+user_desc_t SYS_FOS_GetCurrentThreadUd()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_GET_CURRENT_THR_UD, buf);
+
+	return (user_desc_t)buf[0];
+}
+
+
+// create the mutex
+user_desc_t SYS_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, uint8_t pcp_priority)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)timeout_ms;
+	buf[2] = ((uint32_t)type) | ((uint32_t)pcp_priority) << 8;
+
+	system_call(FOS_SYSCALL_FOS_CREATE_MUTEX, buf);
+
+	return (user_desc_t)buf[0];
+}
+
+
+// delete the mutex
+fos_ret_t SYS_FOS_DeleteMutex(user_desc_t mutex)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)mutex;
+
+	system_call(FOS_SYSCALL_FOS_DELETE_MUTEX, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// take the mutex with picked descriptor
+fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)mutex;
+
+	system_call(FOS_SYSCALL_FOS_MUTEX_TAKE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// get taking status of the mutex and set owner
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t SYS_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)mutex;
+
+	system_call(FOS_SYSCALL_FOS_MUTEX_SO_TAKE_STAT, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// release mutex
+fos_ret_t SYS_FOS_MutexGive(user_desc_t mutex)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)mutex;
+
+	system_call(FOS_SYSCALL_FOS_MUTEX_GIVE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// allocate thread local memory
+void* SYS_FOS_LocalAlloc(uint32_t size_bytes)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)size_bytes;
+
+	system_call(FOS_SYSCALL_FOS_LOCAL_ALLOC, buf);
+
+	return (void*)buf[0];
+}
+
+
+// free thread local memory
+fos_ret_t SYS_FOS_LocalFree(void* ptr)
+{
+	uint32_t buf[2];
+	buf[1] = (uint32_t)ptr;
+
+	system_call(FOS_SYSCALL_FOS_LOCAL_FREE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// start the thread with the picked descriptor with argument
+fos_ret_t SYS_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len)
+{
+	uint32_t buf[4];
+	buf[1] = (uint32_t)desc;
+	buf[2] = (uint32_t)arg_ptr;
+	buf[3] = (uint32_t)arg_len;
+
+	system_call(FOS_SYSCALL_FOS_THREAD_RUN_WITH_ARG, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+// get thread arg pointer
+uint8_t* SYS_FOS_GetThreadArgPtr()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_THREAD_ARG_GET_PTR, buf);
+
+	return (uint8_t*)buf[0];
+}
+
+// get thread arg len
+uint32_t SYS_FOS_GetThreadArgLen()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_THREAD_ARG_GET_LEN, buf);
+
+	return (uint32_t)buf[0];
+}
+
+
+// set note to thread by user descriptor
+fos_ret_t SYS_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note)
+{
+	uint32_t buf[4];
+	buf[1] = (uint32_t)desc;
+	buf[2] = (uint32_t)type;
+	buf[3] = (uint32_t)note;
+
+	system_call(FOS_SYSCALL_FOS_THREAD_SET_NOTE, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// get thread note pointer
+fos_thr_note_t* SYS_FOS_GetThreadNotePtr()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_THREAD_NOTE_GET_PTR, buf);
+
+	return (fos_thr_note_t*)buf[0];
+}
+
+
+
+
 
 
 

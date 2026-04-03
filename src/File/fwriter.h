@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fwriter.h
  * @brief     API for the file writer object. Header file.
- * @version   V1.0.01
- * @date      17.03.2026
+ * @version   V1.0.02
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -29,7 +29,7 @@
 
 
 /*
- * Open file
+ * 6.2.2 Open file
  * Call from the owner thread
  * p    - pointer to the writer object
  * path - path to the file
@@ -39,7 +39,7 @@ fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path);
 
 
 /*
- * Close file
+ * 6.2.3 Close file
  * Call from the owner thread
  * p - pointer to the writer object
  * Returns execution result
@@ -48,7 +48,7 @@ fos_ret_t API_FWriter_Close(fwriter_t *p);
 
 
 /*
- * Begin test writing
+ * 6.2.4 Begin test writing
  * Call from the owner thread
  * p - pointer to the writer object
  * Returns execution result
@@ -57,7 +57,7 @@ fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p);
 
 
 /*
- * Write data
+ * 6.2.5 Write data
  * Thread-safe. Call from any thread, main loop or interrupt
  * p - pointer to the writer object
  * data - pointer to the written data
@@ -69,7 +69,7 @@ fos_ret_t API_FWriter_Write(fwriter_t *p, uint8_t* data, uint32_t data_len);
 
 
 /*
- * Synchronize data
+ * 6.2.6 Synchronize data
  * Call from the owner thread
  * p - pointer to the writer object
  * Returns execution result
@@ -78,7 +78,7 @@ fos_ret_t API_FWriter_FSync(fwriter_t *p);
 
 
 /*
- * Receive file state
+ * 6.2.7 Receive file state
  * p - pointer to the writer object
  * Returns file state
  */

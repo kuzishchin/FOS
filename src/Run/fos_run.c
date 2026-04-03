@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.c
  * @brief     OS start up functions. Source file.
- * @version   V1.0.03
- * @date      18.03.2026
+ * @version   V1.0.04
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,7 +28,7 @@
 
 
 /*
- * Prototype of the user defined initialization function
+ * 1.5 Prototype of the user defined initialization function
  * Redefine in a suitable location when using
  */
 __weak void USER_FOS_InitAndRun()
@@ -38,7 +38,7 @@ __weak void USER_FOS_InitAndRun()
 
 
 /*
- * Initialization and kernel start
+ * 1.2 Initialization and kernel start
  * Call before entering the main loop
  */
 void RUN_FOS_InitAndRun()
@@ -59,7 +59,7 @@ void RUN_FOS_InitAndRun()
 
 
 /*
- * Main loop handler
+ * 1.3 Main loop handler
  * Call from the main loop
  */
 void RUN_FOS_MainLoopProc()
@@ -69,7 +69,7 @@ void RUN_FOS_MainLoopProc()
 
 
 /*
- * Main timer handler
+ * 1.4 Main timer handler
  * Place to the main timer interrupt handler
  */
 void RUN_FOS_TimHandler()

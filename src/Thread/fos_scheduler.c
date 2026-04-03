@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_scheduler.c
  * @brief     Scheduler. Source file.
- * @version   V1.0.01
- * @date      17.03.2026
+ * @version   V1.0.02
+ * @date      29.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -58,7 +58,7 @@ int16_t FOS_Schedule(fos_scheduler_t *ptr, volatile fos_thread_ptr *thr_desc_lis
 			continue;
 
 		thr_state = thr_desc->var.state;             // получаем состояние
-		thr_pr = thr_desc->set.priotity;             // получаем приоритет
+		thr_pr = thr_desc->set.priority;             // получаем приоритет
 		if(thr_pr >= FOS_PRIORITY_CNT)               // проверяем приоритет
 			thr_pr = FOS_PRIORITY_CNT - 1;
 

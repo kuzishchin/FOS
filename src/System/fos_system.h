@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.2.03
- * @date      17.03.2026
+ * @version   V1.2.09
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -113,13 +113,53 @@ fos_ret_t SYS_FOS_Sleep(uint32_t time);
 
 // зафиксировать ошибку
 // используется в слабом подтягивании
-// used via weak callback in the user_fos.c, fos_heap.c, fos_thread.c
+// used via weak callback in the fos_kernel.c, fos_heap.c, fos_thread.c
 void SYS_FOS_ErrorSet(fos_err_t *err);
 
 // завершить текущий поток
 // используется в слабом подтягивании
 // used via weak callback in the fos_thread.c
 fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
+
+// get user descriptor of the current thread
+user_desc_t SYS_FOS_GetCurrentThreadUd();
+
+// create the mutex
+user_desc_t SYS_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, uint8_t pcp_priority);
+
+// delete the mutex
+fos_ret_t SYS_FOS_DeleteMutex(user_desc_t mutex);
+
+// take the mutex with picked descriptor
+fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex);
+
+// get taking status of the mutex and set owner
+// FOS__OK - normal taking, FOS__FAIL - taking with timeout
+fos_ret_t SYS_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex);
+
+// release mutex
+fos_ret_t SYS_FOS_MutexGive(user_desc_t mutex);
+
+// allocate thread memory
+void* SYS_FOS_LocalAlloc(uint32_t size_bytes);
+
+// free thread memory
+fos_ret_t SYS_FOS_LocalFree(void* ptr);
+
+// start the thread with the picked descriptor with argument
+fos_ret_t SYS_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len);
+
+// get thread arg pointer
+uint8_t* SYS_FOS_GetThreadArgPtr();
+
+// get thread arg len
+uint32_t SYS_FOS_GetThreadArgLen();
+
+// set note to thread by user descriptor
+fos_ret_t SYS_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note);
+
+// get thread note pointer
+fos_thr_note_t* SYS_FOS_GetThreadNotePtr();
 
 
 #endif /* APPLICATION_FOS_SYSTEM_FOS_SYSTEM_H_ */

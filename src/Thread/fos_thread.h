@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.2.00
- * @date      17.03.2026
+ * @version   V1.2.01
+ * @date      01.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -58,6 +58,10 @@ typedef struct
 	volatile fos_thread_state_t state;   // состояние потока
 	volatile fos_thread_mode_t  mode;    // режим потока
 	volatile fos_sw_t static_flag;       // static thread flag
+	volatile fos_sw_t heap_sw;           // state of the thread local heap
+	volatile uint8_t* arg_ptr;           // argmunt pointer in the local thread heap
+	volatile uint32_t arg_len;           // argument len
+	volatile fos_thr_note_t* note_ptr;   // thread note pointer
 
 } fos_thread_var_t;
 
@@ -114,6 +118,27 @@ void FOS_AllThreadProcState(volatile fos_thread_ptr *thr_desc_list, uint8_t thr_
 
 // обработать отладку потока
 void FOS_ThreadProcDbg(fos_thread_dbg_t *d, user_desc_t user_desc);
+
+// set local thread state
+fos_ret_t FOS_Thread_SetHeapState(fos_thread_t *p, fos_ret_t state);
+
+// add arg to the thread
+fos_ret_t FOS_Thread_AddArg(fos_thread_t *p, uint8_t* arg_ptr, uint32_t arg_size);
+
+// get thread argument pointer
+uint8_t* FOS_Thread_GetArgPtr(fos_thread_t *p);
+
+// get thread argument len
+uint32_t FOS_Thread_GetArgLen(fos_thread_t *p);
+
+// add note pointer
+fos_ret_t FOS_Thread_AddNotePtr(fos_thread_t *p, fos_thr_note_t *note_ptr);
+
+// set note
+fos_ret_t FOS_Thread_SetNote(fos_thread_t *p, fos_note_type_t type, uint32_t note);
+
+// get note pointer
+fos_thr_note_t* FOS_Thread_GetNotePtr(fos_thread_t *p);
 
 
 

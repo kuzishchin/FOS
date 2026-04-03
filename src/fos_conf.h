@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_conf.h
  * @brief     Configuration file of OS. Header file.
- * @version   V1.3.02
- * @date      03.03.2026
+ * @version   V1.3.03
+ * @date      26.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,6 +27,7 @@
 #define FOS_SEM_BIN_CNT        32          // maximum binary semaphore count
 #define FOS_SEM_COUNTING_CNT   32          // maximum counting semaphore count
 #define FOS_SEM_QUEUE_32_CNT   32          // maximum queue32 count
+#define FOS_MUTEX_CNT          32          // maximum mutex count
 #define FOS_FWRITER_CNT        32          // maximum writer objects count
 #define FOS_THR_NAME_LEN       16          // thread name length
 #define FOS_MAX_STR_ERR_LEN    32          // maximum length of error descriptive string

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_heap.h
  * @brief     Abstraction layer for heap. Header file.
- * @version   V1.0.04
- * @date      17.03.2026
+ * @version   V1.0.05
+ * @date      31.03.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -43,6 +43,15 @@ void FOS_Heap_KernelHeap_Free(void* ptr);
 
 // освободить память в куче процессов
 void FOS_Heap_ThreadsHeap_Free(void* ptr);
+
+// create the local heap of the thread
+fos_ret_t FOS_Heap_LocalHeap_Create(uint8_t thr_id, uint8_t* mem_ptr, uint32_t mem_size);
+
+// allocate local heap
+void* FOS_Heap_LocalHeap_Alloc(uint32_t size_bytes, uint8_t thr_id);
+
+// free local heap
+void FOS_Heap_LocalHeap_Free(void* ptr, uint8_t thr_id);
 
 
 

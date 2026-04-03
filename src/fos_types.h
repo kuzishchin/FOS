@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.3.04
- * @date      17.03.2026
+ * @version   V1.3.10
+ * @date      02.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -36,11 +36,15 @@
 #define FOS_INF_TIME           0xFFFFFFFF    // infinite time
 #define FOS_USER_LOCK_MASK     0xFFFF        // user defined mask for blocking
 #define FOS_LOCK_OBJ_FLAG      0x10000       // blocking flag for blocker object
-#define FOS_WRONG_THREAD_ID    0xFF          // identifier of a wrong thread descriptor
-#define FOS_WRONG_SEM_BIN_ID   0xFF          // identifier of a wrong binary semphore descriptor
-#define FOS_WRONG_SEM_CNT_ID   0xFF          // identifier of a wrong counting semphore descriptor
-#define FOS_WRONG_QUE_32_ID    0xFF          // identifier of a wrong queue32 descriptor
-#define FOS_WRONG_FWRITER_ID   0xFF          // identifier of a wrong writer object descriptor
+
+#define FOS_WRONG_OBJ_ID       0xFF          // identifier of a wrong object descriptor
+#define FOS_WRONG_THREAD_ID    FOS_WRONG_OBJ_ID
+#define FOS_WRONG_SEM_BIN_ID   FOS_WRONG_OBJ_ID
+#define FOS_WRONG_SEM_CNT_ID   FOS_WRONG_OBJ_ID
+#define FOS_WRONG_QUE_32_ID    FOS_WRONG_OBJ_ID
+#define FOS_WRONG_MUTEX_ID     FOS_WRONG_OBJ_ID
+#define FOS_WRONG_FWRITER_ID   FOS_WRONG_OBJ_ID
+
 #define FOS_WRONG_USER_DESC    0             // wrong user defined descriptor
 #define FOS_KERNEL_USER_DESC   0x1           // kernel mode user defined descriptor
 
@@ -50,10 +54,13 @@
 #define FOS_KERNEL_HEAP_ID     0x1           // ID of kernel heap
 #define FOS_THREADS_HEAP_ID    0x2           // ID of threads heap
 
-#define FOS_SYS_CALL_CNT       32            // maximum system call count
+#define FOS_SYS_CALL_CNT       0x30          // maximum system call count
 #define FOS_PRIORITY_CNT       8             // maximum priorities count(0 is the highest, 1 - lower than 0, etc.)
 
 #define FOS_HARD_FAULT_CALL_ID 0xFFFF        // identifier of hard fault calling function
+
+#define FOS_NOTE_SIGN          0x1ABC
+#define FOS_SYS_NOTE_QUIT      0x01
 
 
 // on-off switch
@@ -81,6 +88,16 @@ typedef enum
 	FOS_SEMB_STATE__UNLOCK,         // unlocked
 
 } fos_semb_state_t;
+
+
+// mutex type
+typedef enum
+{
+	FOS_MUTEX_TYPE__SIMPLE = 0,      // simple
+	FOS_MUTEX_TYPE__PIP,             // Priority Inheritance Protocol
+	FOS_MUTEX_TYPE__PCP,             // Priority Ceiling Protocol
+
+} fos_mutex_type_t;
 
 
 // queue mode
@@ -143,6 +160,14 @@ typedef enum
 
 } fos_thr_alloc_t;
 
+// note types
+typedef enum
+{
+	FOS_NOTE_TYPE__SYS = 0,
+	FOS_NOTE_TYPE__USER,
+
+} fos_note_type_t;
+
 
 // user descriptor
 typedef uint32_t user_desc_t;
@@ -163,6 +188,16 @@ typedef struct
 } fos_mgv_t;
 
 
+// thread note
+typedef struct
+{
+	uint32_t sys;
+	uint32_t user;
+	uint16_t sign;
+
+} fos_thr_note_t;
+
+
 // description of the constant thread settings
 typedef struct
 {
@@ -171,6 +206,7 @@ typedef struct
 	uint32_t        stack_size;       // stack size
 	fos_thr_alloc_t alloc_type;       // thread allocation type
 	user_desc_t     semb;             // thread binary semaphore
+	uint8_t         priority_def;     // thread default priority (0 - the highest, 1 - lower than 0, etc.)
 
 } fos_thread_cset_t;
 
@@ -178,7 +214,7 @@ typedef struct
 // thread settings
 typedef struct
 {
-	volatile uint8_t priotity;          // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	volatile uint8_t priority;          // thread priority (0 - the highest, 1 - lower than 0, etc.)
 
 } fos_thread_set_t;
 
@@ -203,10 +239,22 @@ typedef struct
 	user_thread_ep_t user_thread_ep;   // thread entry point
 	uint32_t         stack_size;       // thread stack size
 	uint32_t         heap_size;        // thread heap size
-	uint8_t          priotity;         // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	uint8_t          priority;         // thread priority (0 - the highest, 1 - lower than 0, etc.)
 	fos_thr_alloc_t  alloc_type;       // thread allocation type
 
 } fos_thread_user_init_t;
+
+
+// periodically thread arg
+typedef struct
+{
+	user_thread_ep_t poll_func;
+	uint32_t start_delay_ms;
+	uint32_t poll_period_ms;
+	uint32_t poll_counter;
+	uint16_t sign;
+
+} fos_pt_arg_t;
 
 
 
@@ -260,8 +308,22 @@ typedef struct
 } fos_semaphore_cnt_t;
 
 
+// mutex
+typedef struct
+{
+	fos_semaphore_binary_t* semb_ptr;
+	fos_mutex_type_t        type;
+	uint8_t                 pcp_priority;
+
+	uint8_t                 owner_thr_id;            // id of the owner thread
+	user_desc_t             user_desc;               // used defined mutex descriptor
+
+} fos_mutex_t;
+
+
 typedef fos_semaphore_binary_t* fos_semaphore_binary_ptr;
 typedef fos_semaphore_cnt_t*    fos_semaphore_cnt_ptr;
+typedef fos_mutex_t*            fos_mutex_ptr;
 
 
 // error description
