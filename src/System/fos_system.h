@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.2.09
- * @date      02.04.2026
+ * @version   V1.2.11
+ * @date      08.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -107,6 +107,10 @@ fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
 // is the thhread alive
 fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc);
 
+/*
+ * **************************************************************
+ */
+
 // усыпить текущий поток
 // используется в слабом подтягивании в file_sys.c, fwriter.c
 fos_ret_t SYS_FOS_Sleep(uint32_t time);
@@ -120,6 +124,25 @@ void SYS_FOS_ErrorSet(fos_err_t *err);
 // используется в слабом подтягивании
 // used via weak callback in the fos_thread.c
 fos_ret_t SYS_FOS_Terminate(int32_t terminate_code);
+
+// get thread arg pointer
+// используется в слабом подтягивании
+// used via weak callback in the fos_kernel.c
+uint8_t* SYS_FOS_GetThreadArgPtr();
+
+// get thread arg len
+// используется в слабом подтягивании
+// used via weak callback in the fos_kernel.c
+uint32_t SYS_FOS_GetThreadArgLen();
+
+// get ep_wa
+// используется в слабом подтягивании
+// used via weak callback in the fos_kernel.c
+user_thread_ep_wa_t SYS_FOS_GetThreadEpA();
+
+/*
+ * **************************************************************
+ */
 
 // get user descriptor of the current thread
 user_desc_t SYS_FOS_GetCurrentThreadUd();
@@ -149,17 +172,18 @@ fos_ret_t SYS_FOS_LocalFree(void* ptr);
 // start the thread with the picked descriptor with argument
 fos_ret_t SYS_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len);
 
-// get thread arg pointer
-uint8_t* SYS_FOS_GetThreadArgPtr();
-
-// get thread arg len
-uint32_t SYS_FOS_GetThreadArgLen();
-
 // set note to thread by user descriptor
 fos_ret_t SYS_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note);
 
 // get thread note pointer
 fos_thr_note_t* SYS_FOS_GetThreadNotePtr();
+
+// усыпить текущий поток с ожиданием сигнала
+fos_ret_t SYS_FOS_Wait(uint32_t time);
+
+// залогировать событие
+fos_ret_t SYS_FOS_LogData(char *str, fos_log_type_t type);
+
 
 
 #endif /* APPLICATION_FOS_SYSTEM_FOS_SYSTEM_H_ */

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.c
  * @brief     Gates for system call handling. Source file.
- * @version   V1.2.09
- * @date      01.04.2026
+ * @version   V1.2.11
+ * @date      08.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -108,6 +108,10 @@ static void GATE_FOS_SetNoteDesc(void* data);
 
 static void GATE_FOS_GetThreadNotePtr(void* data);
 
+static void GATE_FOS_GetThreadEpA(void* data);
+
+static void GATE_FOS_LogData(void* data);
+
 
 
 
@@ -132,6 +136,8 @@ void GATE_FOS_Init()
 
 	system_reg_call(GATE_FOS_SetNoteDesc, FOS_SYSCALL_FOS_THREAD_SET_NOTE);
 	system_reg_call(GATE_FOS_GetThreadNotePtr, FOS_SYSCALL_FOS_THREAD_NOTE_GET_PTR);
+
+	system_reg_call(GATE_FOS_GetThreadEpA, FOS_SYSCALL_FOS_THREAD_GET_EP_WA);
 
 	system_reg_call(GATE_FOS_CreateSemBinary, FOS_SYSCALL_FOS_CREATE_SEMB);
 	system_reg_call(GATE_FOS_SemBinarySetTimeout, FOS_SYSCALL_FOS_SEMB_SET_TIMEOUT);
@@ -162,6 +168,7 @@ void GATE_FOS_Init()
 	system_reg_call(GATE_FOS_AskDataQueue32, FOS_SYSCALL_FOS_QUEUE_32_ASK);
 
 	system_reg_call(GATE_FOS_ErrorSet, FOS_SYSCALL_FOS_ERROR_SET);
+	system_reg_call(GATE_FOS_LogData, FOS_SYSCALL_FOS_LOG_USER_DATA);
 
 	system_reg_call(GATE_File_Mount, FOS_SYSCALL_FILE_MOUNT);
 	system_reg_call(GATE_File_Unmount, FOS_SYSCALL_FILE_UNMOUNT);
@@ -177,7 +184,7 @@ static void GATE_FOS_Yield(void* data)
 static void GATE_FOS_Sleep(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_Sleep(buf_ptr[1]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_Sleep(buf_ptr[1], (fos_sw_t)buf_ptr[2]);
 }
 
 
@@ -456,7 +463,18 @@ static void GATE_FOS_GetThreadNotePtr(void* data)
 }
 
 
+static void GATE_FOS_GetThreadEpA(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_GetThreadEpA();
+}
 
+
+static void GATE_FOS_LogData(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_LogUserData((char*)buf_ptr[1], (fos_log_type_t)buf_ptr[2]);
+}
 
 
 

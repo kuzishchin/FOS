@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_semb.h
  * @brief     Binary named strong semaphore. Header file.
- * @version   V1.2.01
- * @date      23.01.2026
+ * @version   V1.2.04
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.3.10
- * @date      02.04.2026
+ * @version   V1.3.15
+ * @date      27.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -59,8 +59,17 @@
 
 #define FOS_HARD_FAULT_CALL_ID 0xFFFF        // identifier of hard fault calling function
 
-#define FOS_NOTE_SIGN          0x1ABC
-#define FOS_SYS_NOTE_QUIT      0x01
+#define FOS_NOTE_SIGN          0x1ABC        // sign for note checking
+#define FOS_SYS_NOTE_QUIT      0x01          // system note to quit the thread
+#define FOS_NOTE_STAT_SYS      0x01          // system note rx status
+#define FOS_NOTE_STAT_USER     0x02          // user note rx status
+
+#define FOS_LOG_FROM_ISR_BIT   0x08          // bit for data log from ISR
+#define FOS_LOG_TYPE_MASK      0x03          // log type mask
+
+#define FOS_MAX_STR_LOG_LEN    100           // maximum length of log descriptive string
+
+//#define FOS_USE_MPU
 
 
 // on-off switch
@@ -103,8 +112,8 @@ typedef enum
 // queue mode
 typedef enum
 {
-	FOS_QUEUE_MODE__POLL_ONLY = 0,
-	FOS_QUEUE_MODE__POLL_AND_BLOCK,
+	FOS_QUEUE_MODE__POLL_ONLY = 0,   // queue mode to read without thread blocking
+	FOS_QUEUE_MODE__POLL_AND_BLOCK,  // queue mode to read with and without thread blocking
 
 } fos_queue_mode_t;
 
@@ -112,8 +121,8 @@ typedef enum
 // queue sw
 typedef enum
 {
-	FOS_QUEUE_SW__POLL = 0,
-	FOS_QUEUE_SW__BLOCK,
+	FOS_QUEUE_SW__POLL = 0,           // read data without thread blocking
+	FOS_QUEUE_SW__BLOCK,              // read data with thread blocking
 
 } fos_queue_sw_t;
 
@@ -163,8 +172,8 @@ typedef enum
 // note types
 typedef enum
 {
-	FOS_NOTE_TYPE__SYS = 0,
-	FOS_NOTE_TYPE__USER,
+	FOS_NOTE_TYPE__SYS = 0,     // system note
+	FOS_NOTE_TYPE__USER,        // user note
 
 } fos_note_type_t;
 
@@ -178,6 +187,7 @@ typedef struct
 {
 	volatile uint32_t kernel_sp;         // pointer to kernel stack
 	volatile uint32_t user_sp;           // pointer to process stack
+	volatile uint32_t unpriv_mode;       // unprivileged mode
 
 	volatile fos_work_mode_t mode;       // OS work mode
 
@@ -191,9 +201,10 @@ typedef struct
 // thread note
 typedef struct
 {
-	uint32_t sys;
-	uint32_t user;
-	uint16_t sign;
+	uint32_t sys;             // system note flags
+	uint32_t user;            // user note flags
+	uint16_t sign;            // sign to check the note (always must be equal FOS_NOTE_SIGN)
+	uint8_t  stat;            // note status that indicates that system note has been received (bit0 for system note, bit1 for user note)
 
 } fos_thr_note_t;
 
@@ -203,6 +214,7 @@ typedef struct
 {
 	uint32_t        base_sp;          // stack starting address
 	uint32_t        ep;               // entry point address
+	uint32_t        ep_wa;            // entry point address with arguments
 	uint32_t        stack_size;       // stack size
 	fos_thr_alloc_t alloc_type;       // thread allocation type
 	user_desc_t     semb;             // thread binary semaphore
@@ -229,18 +241,20 @@ typedef struct
 } fos_thread_init_t;
 
 
-typedef void (*user_thread_ep_t)();       // entry point to user thread
+typedef void (*user_thread_ep_t)();                                 // entry point to user thread
+typedef void (*user_thread_ep_wa_t)(uint8_t *args, uint32_t len);   // entry point to user thread with arguments
 
 
 // user defined thread initialization
 typedef struct
 {
-	char            *name_ptr;         // pointer to the name of the thread
-	user_thread_ep_t user_thread_ep;   // thread entry point
-	uint32_t         stack_size;       // thread stack size
-	uint32_t         heap_size;        // thread heap size
-	uint8_t          priority;         // thread priority (0 - the highest, 1 - lower than 0, etc.)
-	fos_thr_alloc_t  alloc_type;       // thread allocation type
+	char            *name_ptr;              // pointer to the name of the thread
+	user_thread_ep_t    user_thread_ep;     // thread entry point
+	user_thread_ep_wa_t user_thread_ep_wa;  // thread entry point with arguments
+	uint32_t         stack_size;            // thread stack size
+	uint32_t         heap_size;             // thread heap size
+	uint8_t          priority;              // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	fos_thr_alloc_t  alloc_type;            // thread allocation type
 
 } fos_thread_user_init_t;
 
@@ -248,11 +262,11 @@ typedef struct
 // periodically thread arg
 typedef struct
 {
-	user_thread_ep_t poll_func;
-	uint32_t start_delay_ms;
-	uint32_t poll_period_ms;
-	uint32_t poll_counter;
-	uint16_t sign;
+	user_thread_ep_t poll_func;             // entry point to the polled function
+	uint32_t start_delay_ms;                // delay before start
+	uint32_t poll_period_ms;                // poll period except function time
+	uint32_t poll_counter;                  // count to poll the function (if 0 - disabled)
+	uint16_t sign;                          // sign (always must be equal FOS_NOTE_SIGN)
 
 } fos_pt_arg_t;
 
@@ -311,9 +325,9 @@ typedef struct
 // mutex
 typedef struct
 {
-	fos_semaphore_binary_t* semb_ptr;
-	fos_mutex_type_t        type;
-	uint8_t                 pcp_priority;
+	fos_semaphore_binary_t* semb_ptr;                // binary semaphore pointer
+	fos_mutex_type_t        type;                    // mutex type
+	uint8_t                 pcp_priority;            // max priority for pcp mode
 
 	uint8_t                 owner_thr_id;            // id of the owner thread
 	user_desc_t             user_desc;               // used defined mutex descriptor
@@ -329,10 +343,10 @@ typedef fos_mutex_t*            fos_mutex_ptr;
 // error description
 typedef struct
 {
-	uint32_t    err_code;
-	user_desc_t user_desc;
-	char *ext_str_ptr;
-	char str[FOS_MAX_STR_ERR_LEN];
+	uint32_t    err_code;                // error code
+	user_desc_t user_desc;               // user descriptor where the error is set
+	char *ext_str_ptr;                   // describing string pointer
+	char str[FOS_MAX_STR_ERR_LEN];       // describing string
 
 } fos_err_t;
 
@@ -347,9 +361,54 @@ typedef enum
 
 } fos_err_enum;
 
+
+// log src
+typedef enum
+{
+	FOS_LOG_SRC__SYS = 1,      // for system log
+	FOS_LOG_SRC__USER,         // for user note via api
+	FOS_LOG_SRC__ISR,          // for user note via api for ISR
+
+} fos_log_src_t;
+
+
+// log type
+typedef enum
+{
+	FOS_LOG_TYPE__ERROR = 1,   // something goes wrong
+	FOS_LOG_TYPE__WARNING,     // unusual actions
+	FOS_LOG_TYPE__INFO,        // normal actions
+
+} fos_log_type_t;
+
+
+// log node
+typedef struct
+{
+	char           str[FOS_MAX_STR_LOG_LEN];    // describing string
+	user_desc_t    user_desc;                   // user descriptor where the log is written
+	uint32_t       ts;                          // log timestamp
+	uint16_t       num;                         // log num (0, 1, 2, ...)
+	fos_log_src_t  src;                         // log source
+	fos_log_type_t type;                        // log type
+
+} fos_log_node_t;
+
+
 extern void FOS_INTERNAL_ERROR_OF_THE_CALLBACK(void);
 
 #endif /* APPLICATION_FOS_FOS_TYPES_H_ */
+
+
+
+
+
+
+
+
+
+
+
 
 
 

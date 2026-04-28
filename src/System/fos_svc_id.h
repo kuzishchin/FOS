@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svc_id.h
  * @brief     System call IDs. Header file.
- * @version   V1.2.09
- * @date      01.04.2026
+ * @version   V1.2.11
+ * @date      08.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -25,7 +25,7 @@
 
 
 #define FOS_SYSCALL_FOS_YIELD               0x00        // void FOS_Yield();
-#define FOS_SYSCALL_FOS_SLEEP               0x01        // fos_ret_t Kernel_FOS_Sleep(uint32_t time);
+#define FOS_SYSCALL_FOS_SLEEP               0x01        // fos_ret_t Kernel_FOS_Sleep(uint32_t time, fos_sw_t is_waiting);
 #define FOS_SYSCALL_FOS_SEMB_TAKE           0x02        // fos_ret_t Kernel_FOS_SemBinaryTake(fos_semaphore_binary_t *semb);
 #define FOS_SYSCALL_FOS_SEMB_GIVE           0x03        // fos_ret_t Kernel_FOS_SemBinaryGive(fos_semaphore_binary_t *semb);
 #define FOS_SYSCALL_FOS_CREATE_THREAD       0x04        // fos_thread_t* Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init);
@@ -65,10 +65,13 @@
 #define FOS_SYSCALL_FOS_THREAD_ARG_GET_LEN  0x26        // uint32_t Kernel_FOS_GetThreadArgLen();
 #define FOS_SYSCALL_FOS_THREAD_SET_NOTE     0x27        // fos_ret_t Kernel_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note);
 #define FOS_SYSCALL_FOS_THREAD_NOTE_GET_PTR 0x28        // fos_thr_note_t* Kernel_FOS_GetThreadNotePtr();
+#define FOS_SYSCALL_FOS_THREAD_GET_EP_WA    0x29        // uint32_t Kernel_FOS_GetThreadEpA();
+#define FOS_SYSCALL_FOS_LOG_USER_DATA       0x2A        // fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type);
 
 
 
 #endif /* APPLICATION_FOS_FOS_SVC_ID_H_ */
+
 
 
 

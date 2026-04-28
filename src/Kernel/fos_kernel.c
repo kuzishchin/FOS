@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.c
  * @brief     Kernel. Source file.
- * @version   V1.5.07
- * @date      02.04.2026
+ * @version   V1.5.13
+ * @date      27.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -24,22 +24,29 @@
 #include "Kernel/fos_kernel.h"
 #include "Mem/fos_heap.h"
 #include "Platform/sl_platform.h"
-#include <string.h>
+#include "Libs/sl_string.h"
+#include <stdio.h>
 
 
 static fos_t fos;                                          // OS
 
 extern uint32_t kernel_stack[FOS_KERNEL_STACK_SIZE / 4];   // kernel stack
 
-static char *FOS_ver = "FOS version 1.0.5 build 07 03.04.2026 api-1\r\n\0";  // FOS version
+static char *FOS_ver = "FOS version 1.0.6 build 08 28.04.2026 api-1\r\n\0";  // FOS version
+
+static fwriter_t* fptr = NULL;
 
 
 // the main loop of the iddle thread
 static void Iddle_Main_thr();
 
-// the main loop of the file system thread
 #ifdef FOS_USE_FATFS
+// the main loop of the file system thread
 static void FProc_Main_thr();
+// the main loop of the system logger
+#ifdef FOS_USE_LOG_TO_FS
+static void FOS_SysLogWriter_thr();
+#endif
 #endif
 
 // create the thread object
@@ -83,6 +90,9 @@ static void Private_Kernel_FOS_Proc_StackErrorCallback(user_desc_t user_desc);
 // OS garbage collection
 static void Private_Kernel_FOS_GarbageCollection();
 
+// system etry point to start the thread with arguments
+static void Private_Kernel_FOS_StartThreadWithArgs();
+
 
 // the prototype of error catch
 // defined in the fos_system.c
@@ -92,10 +102,30 @@ __weak void SYS_FOS_ErrorSet(fos_err_t *err)
 }
 
 
-// get FOS version
-char* Kernel_FOS_GetVersion()
+// get thread arg pointer
+// defined in the fos_system.c
+__weak  uint8_t* SYS_FOS_GetThreadArgPtr()
 {
-	return FOS_ver;
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return NULL;
+}
+
+
+// get thread arg len
+// defined in the fos_system.c
+__weak uint32_t SYS_FOS_GetThreadArgLen()
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return 0;
+}
+
+
+// get ep_wa
+// defined in the fos_system.c
+__weak user_thread_ep_wa_t SYS_FOS_GetThreadEpA()
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return NULL;
 }
 
 
@@ -142,6 +172,27 @@ void Kernel_FOS_Init()
 	user_init.name_ptr = "FProc\0";
 	thr = Kernel_FOS_CreateThread(&user_init);
 	Kernel_FOS_RunDesc(thr);
+
+#ifdef FOS_USE_LOG_TO_FS
+	fptr = Kernel_CreateFWriter(0x400);
+	if(fptr)
+	{
+		// the logger writer
+		user_init.user_thread_ep = FOS_SysLogWriter_thr;
+		user_init.priority = FOS_PRIORITY_CNT - 2;		// VERY LOW
+		user_init.stack_size = STACK_SIZE_LOGWR_THR;
+		user_init.heap_size  = FOS_DEF_THR_HEAP_SIZE;
+		user_init.alloc_type = FOS__THREAD_ALLOC_AUTO;
+		user_init.name_ptr = "SysLogWriter\0";
+		thr = Kernel_FOS_CreateThread(&user_init);
+		Kernel_FOS_RunDesc(thr);
+	}
+#endif
+#endif
+
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData("FOS is initialized", FOS_LOG_TYPE__INFO);
+	Kernel_FOS_LogSysData(FOS_ver, FOS_LOG_TYPE__INFO); // 18 symbols
 #endif
 }
 
@@ -149,6 +200,9 @@ void Kernel_FOS_Init()
 // OS start
 fos_ret_t Kernel_FOS_Start()
 {
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData("FOS is starting", FOS_LOG_TYPE__INFO); // 15 symbols
+#endif
 	return FOS_Start(&fos);
 }
 
@@ -156,8 +210,20 @@ fos_ret_t Kernel_FOS_Start()
 // creat thread
 user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 {
+	const uint32_t MIN_LEN = 256;
+
 	if(user_init == NULL)
 		return FOS_WRONG_USER_DESC;
+
+	if(user_init->name_ptr == NULL)
+		return FOS_WRONG_USER_DESC;
+	if((user_init->user_thread_ep == NULL) && (user_init->user_thread_ep_wa == NULL))
+		return FOS_WRONG_USER_DESC;
+
+	if(user_init->heap_size < MIN_LEN)
+		user_init->heap_size = MIN_LEN;
+	if(user_init->stack_size < MIN_LEN)
+		user_init->stack_size = MIN_LEN;
 
 	/*
 	 * Allocate memory for the thread stack and heap
@@ -165,7 +231,13 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	uint32_t thread_mem_size = user_init->stack_size + user_init->heap_size;    // calculate thread memory size
 	void* thread_mem_ptr = FOS_Heap_ThreadsHeap_Alloc(thread_mem_size);         // allocate it
 	if(thread_mem_ptr == NULL)                                                  // error check
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData2("Creating thread error. Cannot allocate thread memory. Name=", user_init->name_ptr, FOS_LOG_TYPE__ERROR); // 59+16+1=76 symbols
+#endif
 		return FOS_WRONG_USER_DESC;
+	}
 
 	/*
 	 * Create the thread
@@ -174,6 +246,9 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	if(thr_ptr == NULL)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData2("Creating thread error. Cannot create the thread object. Name=", user_init->name_ptr, FOS_LOG_TYPE__ERROR); // 61+16+1=78 symbols
+#endif
 		FOS_Heap_ThreadsHeap_Free(thread_mem_ptr);
 		return FOS_WRONG_USER_DESC;
 	}
@@ -186,6 +261,9 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	if(semb == FOS_WRONG_USER_DESC)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData2("Creating thread error. Cannot create  semaphore thread. Name=", user_init->name_ptr, FOS_LOG_TYPE__ERROR); // 61+16+1=78 symbols
+#endif
 		FOS_Heap_KernelHeap_Free(thr_ptr);
 		FOS_Heap_ThreadsHeap_Free(thread_mem_ptr);
 		return FOS_WRONG_USER_DESC;
@@ -200,10 +278,16 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	init.cset.priority_def = user_init->priority;
 	init.cset.base_sp = (uint32_t)thread_mem_ptr;
 	init.cset.stack_size = user_init->stack_size;
-	init.cset.ep = (uint32_t)user_init->user_thread_ep;
 	init.cset.alloc_type = user_init->alloc_type;
 	init.cset.semb = semb;
 	init.name_ptr = user_init->name_ptr;
+	if(user_init->user_thread_ep_wa){
+		init.cset.ep    = (uint32_t)Private_Kernel_FOS_StartThreadWithArgs;
+		init.cset.ep_wa = (uint32_t)user_init->user_thread_ep_wa;
+	}else{
+		init.cset.ep    = (uint32_t)user_init->user_thread_ep;
+		init.cset.ep_wa = 0;
+	}
 	FOS_ThreadInit(thr_ptr, &init);
 
 	/*
@@ -213,6 +297,9 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	if(FOS_ThreadReg(&fos, thr_ptr, &thr_id) != FOS__OK)
 	{
 		// if there is any error, then free all allocated memory
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData2("Creating thread error. Cannot register the thread. Name=", user_init->name_ptr, FOS_LOG_TYPE__ERROR); // 56+16+1=73 symbols
+#endif
 		FOS_Heap_KernelHeap_Free(thr_ptr);
 		FOS_Heap_ThreadsHeap_Free(thread_mem_ptr);
 		Kernel_FOS_DeleteSemBinary(semb);
@@ -225,6 +312,10 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	uint32_t  base_local_heap = ((uint32_t)thread_mem_ptr) + user_init->stack_size;
 	fos_ret_t heap_state = FOS_Heap_LocalHeap_Create(thr_id, (uint8_t*)base_local_heap, user_init->heap_size);
 	FOS_Thread_SetHeapState(thr_ptr, heap_state);
+#if FOS_DEBUL_LEVEL >= 1
+	if(heap_state != FOS__OK)
+		Kernel_FOS_LogSysData3("Creating thread error. Cannot create heap of the thread. Name=", user_init->name_ptr, thr_ptr->user_desc, FOS_LOG_TYPE__ERROR); // 62+16+10+6=94 symbols
+#endif
 
 	/*
 	 * Allocate local memory for the note
@@ -235,7 +326,16 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 		FOS_Thread_AddNotePtr(thr_ptr, note_ptr);
 		if(note_ptr)
 			note_ptr->sign = FOS_NOTE_SIGN;
+		else{
+#if FOS_DEBUL_LEVEL >= 1
+			Kernel_FOS_LogSysData3("Creating thread error. Cannot allocate memory for the note. Name=", user_init->name_ptr, thr_ptr->user_desc, FOS_LOG_TYPE__ERROR); // 65+16+10+6=97 symbols
+#endif
+		}
 	}
+
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData3("Thread is created. Name=", user_init->name_ptr, thr_ptr->user_desc, FOS_LOG_TYPE__INFO); // 24+16+10+6=56 symbols
+#endif
 
 	return thr_ptr->user_desc;
 }
@@ -244,6 +344,9 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 // start the thread with the picked descriptor
 fos_ret_t Kernel_FOS_RunDesc(user_desc_t desc)
 {
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData3("Thread is running.", "Thread", desc, FOS_LOG_TYPE__INFO); // 18+6+10+6=40 symbols
+#endif
 	return FOS_RunId(&fos, FOS_GetUdThreadId(&fos, desc));
 }
 
@@ -251,6 +354,9 @@ fos_ret_t Kernel_FOS_RunDesc(user_desc_t desc)
 // start the thread with the picked descriptor with argument
 fos_ret_t Kernel_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len)
 {
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData3("Thread is running with args.", "Thread", desc, FOS_LOG_TYPE__INFO); // 26+6+10+6=50 symbols
+#endif
 	if((arg_ptr == NULL) || (arg_len == 0))
 		return FOS__FAIL;
 
@@ -285,6 +391,9 @@ uint32_t Kernel_FOS_GetThreadArgLen()
 // terminate the thread with the picked descriptor
 fos_ret_t Kernel_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code)
 {
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData3("Thread is terminating.", "Thread", desc, FOS_LOG_TYPE__INFO); // 22+6+10+6=44 symbols
+#endif
 	return FOS_TerminateId(&fos, FOS_GetUdThreadId(&fos, desc), terminate_code);
 }
 
@@ -294,6 +403,9 @@ fos_ret_t Kernel_FOS_Terminate(int32_t terminate_code)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
 		return FOS__FAIL;
+#if FOS_DEBUL_LEVEL >= 3
+	Kernel_FOS_LogSysData3("Thread is terminating.", "Thread", Kernel_FOS_GetCurrentThreadUd(), FOS_LOG_TYPE__INFO); // 22+6+10+6=44 symbols
+#endif
 	return FOS_Terminate(&fos, terminate_code);
 }
 
@@ -306,11 +418,11 @@ fos_ret_t Kernel_FOS_IsThreadAlive(user_desc_t desc)
 
 
 // sleep the current thread
-fos_ret_t Kernel_FOS_Sleep(uint32_t time)
+fos_ret_t Kernel_FOS_Sleep(uint32_t time, fos_sw_t is_waiting)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
 		return FOS__FAIL;
-	return FOS_Sleep(&fos, time);
+	return FOS_Sleep(&fos, time, is_waiting);
 }
 
 
@@ -319,12 +431,21 @@ user_desc_t Kernel_FOS_CreateSemBinary(fos_semb_state_t init_state)
 {
 	fos_semaphore_binary_t* sb_ptr = Private_Kernel_FOS_CreateSemBinaryObj();
 	if(sb_ptr == NULL)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating binary semaphore error. Cannot create the binary semaphore object", FOS_LOG_TYPE__ERROR); // 74 symbols
+#endif
 		return FOS_WRONG_USER_DESC;
+	}
 
 	// initialization and registartion
 	if(Private_Kernel_FOS_SemBinaryInitAndReg(sb_ptr, init_state) != FOS__OK)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating binary semaphore error. Cannot register the binary semaphore", FOS_LOG_TYPE__ERROR); // 69 symbols
+#endif
 		FOS_Heap_KernelHeap_Free(sb_ptr);
 		return FOS_WRONG_USER_DESC;
 	}
@@ -385,12 +506,21 @@ user_desc_t Kernel_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt)
 {
 	fos_semaphore_cnt_t* sc_ptr = Private_Kernel_FOS_CreateSemCntObj();
 	if(sc_ptr == NULL)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating counting semaphore error. Cannot create the counting semaphore object", FOS_LOG_TYPE__ERROR); // 78 symbols
+#endif
 		return FOS_WRONG_USER_DESC;
+	}
 
 	// initialization and registartion
 	if(Private_Kernel_FOS_SemCntInitAndReg(sc_ptr, max_cnt, init_cnt) != FOS__OK)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating counting semaphore error. Cannot register the counting semaphore", FOS_LOG_TYPE__ERROR); // 73 symbols
+#endif
 		FOS_Heap_KernelHeap_Free(sc_ptr);
 		return FOS_WRONG_USER_DESC;
 	}
@@ -436,11 +566,24 @@ user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint3
 	uint32_t queue_buf_len = size * sizeof(uint32_t);
 	void* queue_buf_ptr = FOS_Heap_ThreadsHeap_Alloc(queue_buf_len);
 	if(queue_buf_ptr == NULL)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating queue32 error. Cannot allocate queue32 memory", FOS_LOG_TYPE__ERROR); // 54 symbols
+#endif
 		return FOS_WRONG_USER_DESC;
+	}
 
 	fos_queue32_t* que_ptr = Private_Kernel_FOS_CreateQueue32Obj();
 	if(que_ptr == NULL)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating queue32 error. Cannot create the queue32 object", FOS_LOG_TYPE__ERROR); // 56 symbols
+#endif
+		FOS_Heap_ThreadsHeap_Free(queue_buf_ptr);
 		return FOS_WRONG_USER_DESC;
+	}
 
 	user_desc_t semc = FOS_WRONG_USER_DESC;
 	if(mode == FOS_QUEUE_MODE__POLL_AND_BLOCK)
@@ -453,6 +596,9 @@ user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint3
 	if(Private_Kernel_FOS_Queue32InitAndReg(que_ptr, queue_buf_ptr, size, semc) != FOS__OK)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating queue32 error. Cannot register the queue32 object", FOS_LOG_TYPE__ERROR); // 58 symbols
+#endif
 		Kernel_FOS_DeleteSemCnt(semc);
 		FOS_Heap_KernelHeap_Free(que_ptr);
 		FOS_Heap_ThreadsHeap_Free(queue_buf_ptr);
@@ -502,6 +648,22 @@ fos_scheduler_dbg_t* Kernel_FOS_GetSchedulerDbgInfo()
  * **************************************************************
  */
 
+// get FOS version
+// used via weak callback in the fos_api.c
+char* Kernel_FOS_GetVersion()
+{
+	return FOS_ver;
+}
+
+
+// get log writer pointer
+// used via weak callback in the fos_api.c
+fwriter_t* Kernel_FOS_GetLogWriterPtr()
+{
+	return fptr;
+}
+
+
 // create the file writer object
 // used via weak callback in the fos_api.c
 fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len)
@@ -520,7 +682,13 @@ fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len)
 	 */
 	void* write_buf_ptr = FOS_Heap_ThreadsHeap_Alloc(write_buf_len);
 	if(write_buf_ptr == NULL)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating file writer error. Cannot allocate file writer memory", FOS_LOG_TYPE__ERROR);  // 62 symbols
+#endif
 		return NULL;
+	}
 
 	/*
 	 * Create the file writer object
@@ -529,6 +697,9 @@ fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len)
 	if(fwriter_ptr == NULL)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating file writer error. Cannot create the file writer object", FOS_LOG_TYPE__ERROR); // 64 symbols
+#endif
 		FOS_Heap_ThreadsHeap_Free(write_buf_ptr);
 		return NULL;
 	}
@@ -542,6 +713,9 @@ fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len)
 	if(Private_Kernel_FOS_FWriterInitAndReg(fwriter_ptr, &file_init) != FOS__OK)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating file writer error. Cannot register the file writer object", FOS_LOG_TYPE__ERROR); // 66 symbols
+#endif
 		FOS_Heap_KernelHeap_Free(fwriter_ptr);
 		FOS_Heap_ThreadsHeap_Free(write_buf_ptr);
 		return NULL;
@@ -582,6 +756,17 @@ fos_ret_t Kernel_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_
 	return FOS_SetNoteId(&fos, FOS_GetUdThreadId(&fos, desc), type, note);
 }
 
+
+// log user data
+// used via weak callback in the fos_api.c
+fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type)
+{
+	if(type & FOS_LOG_FROM_ISR_BIT)
+		return FOS_LogData(&fos, str, FOS_LOG_SRC__ISR, (fos_log_type_t)(type & FOS_LOG_TYPE_MASK));
+	else
+		return FOS_LogData(&fos, str, FOS_LOG_SRC__USER, (fos_log_type_t)(type & FOS_LOG_TYPE_MASK));
+}
+
 /*
  * **************************************************************
  */
@@ -598,12 +783,20 @@ user_desc_t Kernel_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, u
 {
 	fos_mutex_t* mutex_ptr = Private_Kernel_FOS_CreateMutexObj();
 	if(mutex_ptr == NULL)
+	{
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating mutex error. Cannot create the mutex object", FOS_LOG_TYPE__ERROR); // 52 symbols
+#endif
 		return FOS_WRONG_USER_DESC;
+	}
 
 	user_desc_t semb = Kernel_FOS_CreateSemBinary(FOS_SEMB_STATE__UNLOCK);
 	if(semb == FOS_WRONG_USER_DESC)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating mutex error. Cannot create the semaphore of the mutex", FOS_LOG_TYPE__ERROR); // 62 symbols
+#endif
 		FOS_Heap_KernelHeap_Free(mutex_ptr);
 		return FOS_WRONG_USER_DESC;
 	}
@@ -614,6 +807,9 @@ user_desc_t Kernel_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, u
 	if(Private_Kernel_FOS_MutexInitAndReg(mutex_ptr, semb, type, pcp_priority) != FOS__OK)
 	{
 		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating mutex error. Cannot register the mutex object", FOS_LOG_TYPE__ERROR); // 54 symbols
+#endif
 		Kernel_FOS_DeleteSemBinary(semb);
 		FOS_Heap_KernelHeap_Free(mutex_ptr);
 		return FOS_WRONG_USER_DESC;
@@ -684,6 +880,47 @@ fos_thr_note_t* Kernel_FOS_GetThreadNotePtr()
 }
 
 
+// get ep_wa
+uint32_t Kernel_FOS_GetThreadEpA()
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return 0;
+	return FOS_GetThreadEpA(&fos);
+}
+
+
+// read log
+fos_ret_t Kernel_FOS_LogRead(fos_log_node_t* node_ptr)
+{
+	return FOS_LogRead(&fos, node_ptr);
+}
+
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData(char *str, fos_log_type_t type)
+{
+	return FOS_LogData(&fos, str, FOS_LOG_SRC__SYS, type);
+}
+
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData2(char *str1, char *str2, fos_log_type_t type)
+{
+	char str[FOS_MAX_STR_LOG_LEN];
+	snprintf(str, FOS_MAX_STR_LOG_LEN, "%s %s", str1, str2);
+	return Kernel_FOS_LogSysData(str, type);
+}
+
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData3(char *str1, char *str2, uint32_t val, fos_log_type_t type)
+{
+	char str[FOS_MAX_STR_LOG_LEN];
+	snprintf(str, FOS_MAX_STR_LOG_LEN, "%s %s: ud=%i", str1, str2, (int)val);
+	return Kernel_FOS_LogSysData(str, type);
+}
+
+
 // OS main loop proc
 void Kernel_FOS_MainLoopProc()
 {
@@ -713,6 +950,22 @@ void FOS_Lock_UnlockThread(uint8_t thr_id)
 }
 
 
+// callback to log system data
+// used via weak callback in the fos_semb.c, fos_sem.c
+fos_ret_t FOS_LogSysData(char *str1, char *str2, uint32_t val, fos_log_type_t type)
+{
+	return Kernel_FOS_LogSysData3(str1, str2, val, type);
+}
+
+
+// callback to get thread user descriptor by thread ID
+// used via weak callback in the fos_lock.c
+user_desc_t FOS_GetThreadUdCbk(uint8_t id)
+{
+	return FOS_GetUdThreadById(&fos, id);
+}
+
+
 /*
  * System threads
  */
@@ -727,8 +980,9 @@ static void Iddle_Main_thr()
 }
 
 
-// the main loop of the file system thread
+
 #ifdef FOS_USE_FATFS
+// the main loop of the file system thread
 static void FProc_Main_thr()
 {
 	fos_t* f = &fos;                // pointer at FOS
@@ -753,13 +1007,44 @@ static void FProc_Main_thr()
 		}
 
 		if(!isDataToWrite)                                   // if flag is cleared
-			FOS_Sleep(f, FOS_WRITE_PERIOD_MS);               // goes to sleep
+			FOS_Sleep(f, FOS_WRITE_PERIOD_MS, FOS__DISABLE); // goes to sleep
 
 		File_MountProc();                                    // process device state
 	}
 }
-#endif
 
+#ifdef FOS_USE_LOG_TO_FS
+// the main loop of the system logger
+static void FOS_SysLogWriter_thr()
+{
+	enum {BUF_LEN = 256};
+	fos_ret_t      ret;
+	fos_log_node_t node;
+	uint32_t       data_len = 0;
+	char str[BUF_LEN];
+
+	while(1)
+	{
+		if(API_FWriter_GetFileState(fptr) == FILE_STATE__OPENED)
+		{
+			ret = Kernel_FOS_LogRead(&node);
+			if(ret == FOS__OK)
+			{
+				data_len = FOS_LogNode_GetString(&node, str, BUF_LEN);
+				ret = API_FWriter_Write(fptr, (uint8_t*)str, data_len);
+				while(ret != FOS__OK)
+				{
+					Kernel_FOS_Sleep(FOS_LOG_PERIOD_MS, FOS__DISABLE);
+					ret = API_FWriter_Write(fptr, (uint8_t*)str, data_len);
+				}
+			}
+		}
+
+		Kernel_FOS_Sleep(FOS_LOG_PERIOD_MS, FOS__DISABLE);
+	}
+}
+#endif
+#endif
 
 /*
  * Private
@@ -899,6 +1184,21 @@ static void Private_Kernel_FOS_GarbageCollection()
 		}
 	}
 }
+
+
+// system etry point to start the thread with arguments
+static void Private_Kernel_FOS_StartThreadWithArgs()
+{
+	uint8_t* arg_ptr = SYS_FOS_GetThreadArgPtr();
+	uint32_t arg_len = SYS_FOS_GetThreadArgLen();
+
+	user_thread_ep_wa_t ep_wa = SYS_FOS_GetThreadEpA();
+	if(ep_wa)
+		ep_wa(arg_ptr, arg_len);
+}
+
+
+
 
 
 

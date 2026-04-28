@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_conf.h
  * @brief     Configuration file of OS. Header file.
- * @version   V1.3.03
- * @date      26.03.2026
+ * @version   V1.3.06
+ * @date      27.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -32,6 +32,7 @@
 #define FOS_THR_NAME_LEN       16          // thread name length
 #define FOS_MAX_STR_ERR_LEN    32          // maximum length of error descriptive string
 #define FOS_MAX_OBJ_TO_DEL     32          // maximum length turn of objects to delete
+#define FOS_MAX_LOG_LEN        32          // maximum length of log nodes
 
 //#define FOS_USE_FATFS                      // use FatFs
 #define FOS_MAX_FS_DEV         2           // maximum number of devices
@@ -49,6 +50,7 @@
 
 #define STACK_SIZE_IDDLE_THR   0x400       // iddle thread stack size
 #define STACK_SIZE_FPROC_THR   0x2000      // file proc thread stack size
+#define STACK_SIZE_LOGWR_THR   0x800       // log writer thread stack size
 
 #define FOS_ERROR_STACK_WML    80.0f       // maximum stack fill factor value %, (error event is triggered if exceeded). Comment this line to disable the stack watermark error calling.
 
@@ -58,7 +60,16 @@
 #define FOS_STAB_TIME_MS           200     // stabilaze time (magic time for some BlackPill boards)
 #define FOS_SWITCH_CONTEXT_TIME_US 1000    // OS switch context time, us
 
+#define FOS_DEBUL_LEVEL   3                // debug level
+
+//#define FOS_USE_LOG_TO_FS                  // use logging to the FatFs
+#define FOS_LOG_PERIOD_MS 10               // max period between writing log to the file, ms
+
+
 #endif /* APPLICATION_FOS_FOS_CONF_H_ */
+
+
+
 
 
 

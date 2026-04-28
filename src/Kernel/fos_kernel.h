@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.h
  * @brief     Kernel. Header file.
- * @version   V1.5.07
- * @date      02.04.2026
+ * @version   V1.5.13
+ * @date      27.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,9 +26,6 @@
 
 #include "Kernel/fos.h"
 
-
-// get FOS version
-char* Kernel_FOS_GetVersion();
 
 // OS initialization
 void Kernel_FOS_Init();
@@ -61,7 +58,7 @@ fos_ret_t Kernel_FOS_Terminate(int32_t terminate_code);
 fos_ret_t Kernel_FOS_IsThreadAlive(user_desc_t desc);
 
 // sleep the current thread
-fos_ret_t Kernel_FOS_Sleep(uint32_t time);
+fos_ret_t Kernel_FOS_Sleep(uint32_t time, fos_sw_t is_waiting);
 
 // create the binary semaphore
 user_desc_t Kernel_FOS_CreateSemBinary(fos_semb_state_t init_state);
@@ -124,6 +121,14 @@ fos_scheduler_dbg_t* Kernel_FOS_GetSchedulerDbgInfo();
  * **************************************************************
  */
 
+// get FOS version
+// used via weak callback in the fos_api.c
+char* Kernel_FOS_GetVersion();
+
+// get log writer pointer
+// used via weak callback in the fos_api.c
+fwriter_t* Kernel_FOS_GetLogWriterPtr();
+
 // create the file writer object
 // used via weak callback in the fos_api.c
 fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len);
@@ -143,6 +148,10 @@ fos_ret_t Kernel_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
 // set note to thread by user descriptor
 // used via weak callback in the fos_api.c
 fos_ret_t Kernel_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note);
+
+// log user data
+// used via weak callback in the fos_api.c
+fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type);
 
 /*
  * **************************************************************
@@ -175,6 +184,21 @@ fos_ret_t Kernel_FOS_LocalFree(void* ptr);
 
 // get thread note pointer
 fos_thr_note_t* Kernel_FOS_GetThreadNotePtr();
+
+// get ep_wa
+uint32_t Kernel_FOS_GetThreadEpA();
+
+// read log
+fos_ret_t Kernel_FOS_LogRead(fos_log_node_t* node_ptr);
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData(char *str, fos_log_type_t type);
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData2(char *str1, char *str2, fos_log_type_t type);
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData3(char *str1, char *str2, uint32_t val, fos_log_type_t type);
 
 // OS main loop proc
 void Kernel_FOS_MainLoopProc();

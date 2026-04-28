@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.h
  * @brief     Counting named strong semaphore. Header file.
- * @version   V1.1.02
- * @date      23.01.2026
+ * @version   V1.1.05
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

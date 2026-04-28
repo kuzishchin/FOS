@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.5.06
- * @date      02.04.2026
+ * @version   V1.5.09
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,7 +31,7 @@ static uint8_t FOS_GetThreadId(fos_t *p, fos_thread_t *thr);
 static fos_thread_t* FOS_GetThreadDesc(fos_t *p, uint8_t id);
 
 // send thread with identifier to sleep
-static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time);
+static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time, fos_sw_t is_waiting);
 
 // get binary semaphore identifier by user defined descriptor
 static uint8_t FOS_GetUdSemaphoreBinaryId(fos_t *p, user_desc_t user_desc);
@@ -182,6 +182,21 @@ static fos_thread_t* FOS_GetThreadDesc(fos_t *p, uint8_t id)
 		return NULL;
 
 	return p->var.thread_desc_list[id];
+}
+
+
+// get thread user descriptor by thread ID
+user_desc_t FOS_GetUdThreadById(fos_t *p, uint8_t id)
+{
+	if(p == NULL)
+		return FOS_WRONG_USER_DESC;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
+	if(thr == NULL)
+		return FOS_WRONG_USER_DESC;
+
+	return thr->user_desc;
 }
 
 
@@ -340,7 +355,7 @@ void FOS_Yield()
 
 
 // send thread with identifier to sleep
-static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time)
+static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time, fos_sw_t is_waiting)
 {
 	if(p == NULL)
 		return FOS__FAIL;
@@ -350,7 +365,7 @@ static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time)
 	if(thr == NULL)
 		return FOS__FAIL;
 
-	FOS_ThreadSleep(thr, time);     // send the thread to sleep
+	FOS_ThreadSleep(thr, time, is_waiting);     // send the thread to sleep
 
 	if(id == p->var.current_thr)                // if current thread is being sent to sleep
 		FOS_System_GoToKernelMode(FOS__DISABLE);    // switch to kernel mode
@@ -360,9 +375,9 @@ static fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time)
 
 
 // send current thread to sleep
-fos_ret_t FOS_Sleep(fos_t *p, uint32_t time)
+fos_ret_t FOS_Sleep(fos_t *p, uint32_t time, fos_sw_t is_waiting)
 {
-	return FOS_SleepId(p, p->var.current_thr, time);
+	return FOS_SleepId(p, p->var.current_thr, time, is_waiting);
 }
 
 
@@ -636,7 +651,7 @@ void FOS_ErrorSet(fos_t *p, fos_err_t *err)
 	memcpy((void*)&p->var.error, err, sizeof(fos_err_t));
 
 	if(err->ext_str_ptr != NULL)
-		strncpy((void*)p->var.error.str, err->ext_str_ptr, FOS_MAX_STR_ERR_LEN);
+		strncpy((void*)p->var.error.str, err->ext_str_ptr, FOS_MAX_STR_ERR_LEN - 1);
 }
 
 
@@ -1224,6 +1239,22 @@ fos_thr_note_t* FOS_GetThreadNotePtr(fos_t *p)
 }
 
 
+// get ep_wa
+uint32_t FOS_GetThreadEpA(fos_t *p)
+{
+	if(p == NULL)
+		return 0;
+
+	// get thread descriptor by identifier
+	fos_thread_t *thr = FOS_GetThreadDesc(p, p->var.current_thr);
+	if(thr == NULL)
+		return 0;
+
+	// get ep_wa
+	return FOS_Thread_GetEpA(thr);
+}
+
+
 // get the system stack debug info
 fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p)
 {
@@ -1241,6 +1272,20 @@ fos_scheduler_dbg_t* FOS_GetSchedulerDbgInfo(fos_t *p)
 		return NULL;
 
 	return &p->sheduler.dbg;
+}
+
+
+// write in thread safe mode
+fos_ret_t FOS_LogData(fos_t* p, char *str, fos_log_src_t src, fos_log_type_t type)
+{
+	return FOS_Log_WriteDataProtected((fos_log_t*)&p->var.log, str, src, type, FOS_GetThreadParentUd(p));
+}
+
+
+// read index
+fos_ret_t FOS_LogRead(fos_t* p, fos_log_node_t* node_ptr)
+{
+	return FOS_Log_ReadDataProtected((fos_log_t*)&p->var.log, node_ptr);
 }
 
 

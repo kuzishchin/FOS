@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_semb.c
  * @brief     Binary named strong semaphore. Source file.
- * @version   V1.2.01
- * @date      23.01.2026
+ * @version   V1.2.04
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -25,6 +25,18 @@
 #include "Sync/fos_lock.h"
 #include "Platform/sl_platform.h"
 #include <string.h>
+
+
+
+// заглушка на логирование событий
+// реализация через функцию ядра
+// defined in the fos_kernel.c
+__weak fos_ret_t FOS_LogSysData(char *str1, char *str2, uint32_t val, fos_log_type_t type)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
 
 
 // инициализация
@@ -135,6 +147,10 @@ static fos_ret_t FOS_SemaphoreBinary_ProcTimeout(fos_semaphore_binary_t *p)
 		{
 			if(SL_GetTick() >= p->timeout.timeout_ts_ms)
 			{
+#if FOS_DEBUL_LEVEL >= 2
+				FOS_LogSysData("Semb is timeout.", "Semb with", p->user_desc, FOS_LOG_TYPE__WARNING); // 16+9+10+6=41 symbols
+#endif
+
 				p->timeout.timeout_ts_ms = SL_GetTick() + p->timeout.timeout_ms;
 
 				ENTER_CRITICAL(s);

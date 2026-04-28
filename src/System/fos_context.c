@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_context.c
  * @brief     Low level functional for context switch. Source file.
- * @version   V1.0.02
- * @date      15.01.2026
+ * @version   V1.0.04
+ * @date      27.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -145,8 +145,18 @@ __attribute__((optimize("O0"))) void PendSV_Handler()
 
 		fos_mgv.mode = FOS__USER_WORK_MODE;      // переключаем флаг режима в пользовательский
 
+#if defined FOS_USE_MPU
+		/*
+		 * TO DO: настройка MPU
+		 */
+		fos_mgv.unpriv_mode = 1;                 // пока так
+		DSB();                                   // барьер для данных
+		ISB();                                   // барьер для инструкций
+#endif
+
 		GET_PSP(fos_mgv.kernel_sp);              // сохраняем указатель стека ядра
 		SET_PSP(fos_mgv.user_sp);                // загружаем указатель стека пользователя
+		ISB();                                   // ставим после установки указателя стека согласно спецификации ARM
 
 		FOS_Platform_MainTim_SetARR(fos_mgv.time_period_us);   // ставим период таймера на переключение контекста
 		FOS_Platform_MainTim_SetCounter(0);                    // обнуляем счётчик таймера
@@ -166,12 +176,30 @@ __attribute__((optimize("O0"))) void PendSV_Handler()
 
 		fos_mgv.mode = FOS__KERNEL_WORK_MODE;    // переключаем флаг режима в ядро
 
+#if defined FOS_USE_MPU
+		/*
+		 * TO DO: настройка MPU
+		 */
+		fos_mgv.unpriv_mode = 0;                 // пока так
+		DSB();                                   // барьер для данных
+		ISB();                                   // барьер для инструкций
+#endif
+
 		GET_PSP(fos_mgv.user_sp);                // сохраняем указатель стека пользователя
 		SET_PSP(fos_mgv.kernel_sp);              // загружаем указатель стека ядра
+		ISB();                                   // ставим после установки указателя стека согласно спецификации ARM
 
 		break;
 	}
 
+#if defined FOS_USE_MPU
+	__asm volatile (
+	    "mov r3, %0"                    // Копируем значение из временного регистра в r0
+	    :                               // Выходные параметры (пусто)
+	    : "r" (fos_mgv.unpriv_mode)     // Входные параметры: "r" значит любой свободный регистр
+	    : "r0"                          // Список разрушаемых регистров (сообщаем, что r0 изменится)
+	);
+#endif
 
 	/*
 	 * Загружаем контекст
@@ -193,7 +221,21 @@ __attribute__((optimize("O0"))) void PendSV_Handler()
 	__asm volatile ("sub r2, r0, #128");         // r2 = r0 - 128 = psp - 128, отступаем вверх по стеку на 128 байт
 	__asm volatile ("vldmIA r2!, {S16-S31}");    // читаем регистры сверху вниз
 
+	/*
+	 * Настравиваем control
+	 */
+#if defined FOS_USE_MPU
+	__asm volatile ("MRS r0, control");          // r0 = control
+	__asm volatile ("AND r0, r0, #0xFFFFFFFE");  // сброс первого бита (сброс флага nPRIV)
+	__asm volatile ("ORR r0, r0, r3");           // r0 |= r3 (настройка флага nPRIV через r3=fos_mgv.unpriv_mode)
+	__asm volatile ("MSR control, r0");          // control = r0
+#endif
 
+	/*
+	 * Перед выходом все синхронизуем
+	 */
+	DSB();
+	ISB();
 
 	/*
 	 * Выходим из критической секции кода

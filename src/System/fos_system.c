@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.2.09
- * @date      02.04.2026
+ * @version   V1.2.11
+ * @date      08.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -336,13 +336,17 @@ fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc)
 	return (fos_ret_t)buf[0];
 }
 
+/*
+ * **************************************************************
+ */
 
 // усыпить текущий поток
 // используется в слабом подтягивании в file_sys.c, fwriter.c
 fos_ret_t SYS_FOS_Sleep(uint32_t time)
 {
-	uint32_t buf[2];
+	uint32_t buf[3];
 	buf[1] = time;
+	buf[2] = (uint32_t)FOS__DISABLE;
 
 	system_call(FOS_SYSCALL_FOS_SLEEP, buf);
 
@@ -375,6 +379,47 @@ fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
 	return (fos_ret_t)buf[0];
 }
 
+
+// get thread arg pointer
+// используется в слабом подтягивании
+// used via weak callback in the fos_kernel.c
+uint8_t* SYS_FOS_GetThreadArgPtr()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_THREAD_ARG_GET_PTR, buf);
+
+	return (uint8_t*)buf[0];
+}
+
+// get thread arg len
+// используется в слабом подтягивании
+// used via weak callback in the fos_kernel.c
+uint32_t SYS_FOS_GetThreadArgLen()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_THREAD_ARG_GET_LEN, buf);
+
+	return (uint32_t)buf[0];
+}
+
+
+// get ep_wa
+// используется в слабом подтягивании
+// used via weak callback in the fos_kernel.c
+user_thread_ep_wa_t SYS_FOS_GetThreadEpA()
+{
+	uint32_t buf[1];
+
+	system_call(FOS_SYSCALL_FOS_THREAD_GET_EP_WA, buf);
+
+	return (user_thread_ep_wa_t)buf[0];
+}
+
+/*
+ * **************************************************************
+ */
 
 // get user descriptor of the current thread
 user_desc_t SYS_FOS_GetCurrentThreadUd()
@@ -486,26 +531,6 @@ fos_ret_t SYS_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t ar
 	return (fos_ret_t)buf[0];
 }
 
-// get thread arg pointer
-uint8_t* SYS_FOS_GetThreadArgPtr()
-{
-	uint32_t buf[1];
-
-	system_call(FOS_SYSCALL_FOS_THREAD_ARG_GET_PTR, buf);
-
-	return (uint8_t*)buf[0];
-}
-
-// get thread arg len
-uint32_t SYS_FOS_GetThreadArgLen()
-{
-	uint32_t buf[1];
-
-	system_call(FOS_SYSCALL_FOS_THREAD_ARG_GET_LEN, buf);
-
-	return (uint32_t)buf[0];
-}
-
 
 // set note to thread by user descriptor
 fos_ret_t SYS_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note)
@@ -532,11 +557,30 @@ fos_thr_note_t* SYS_FOS_GetThreadNotePtr()
 }
 
 
+// усыпить текущий поток с ожиданием сигнала
+fos_ret_t SYS_FOS_Wait(uint32_t time)
+{
+	uint32_t buf[3];
+	buf[1] = time;
+	buf[2] = (uint32_t)FOS__ENABLE;
+
+	system_call(FOS_SYSCALL_FOS_SLEEP, buf);
+
+	return (fos_ret_t)buf[0];
+}
 
 
+// залогировать событие
+fos_ret_t SYS_FOS_LogData(char *str, fos_log_type_t type)
+{
+	uint32_t buf[3];
+	buf[1] = (uint32_t)str;
+	buf[2] = (uint32_t)type;
 
+	system_call(FOS_SYSCALL_FOS_LOG_USER_DATA, buf);
 
-
+	return (fos_ret_t)buf[0];
+}
 
 
 

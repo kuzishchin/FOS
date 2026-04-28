@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.2.01
- * @date      01.04.2026
+ * @version   V1.2.03
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -62,6 +62,7 @@ typedef struct
 	volatile uint8_t* arg_ptr;           // argmunt pointer in the local thread heap
 	volatile uint32_t arg_len;           // argument len
 	volatile fos_thr_note_t* note_ptr;   // thread note pointer
+	volatile fos_sw_t signal_sw;         // thread is waiting for the note to wake up
 
 } fos_thread_var_t;
 
@@ -99,7 +100,7 @@ fos_ret_t FOS_Thread_SetRunFlag(fos_thread_t *p);
 fos_ret_t FOS_Thread_SetTerminateFlag(fos_thread_t *p, int32_t terminate_code);
 
 // усыпить поток
-void FOS_ThreadSleep(fos_thread_t *p, uint32_t time);
+void FOS_ThreadSleep(fos_thread_t *p, uint32_t time, fos_sw_t signal_sw);
 
 // разбудить поток
 void FOS_ThreadWeakUp(fos_thread_t *p);
@@ -139,6 +140,9 @@ fos_ret_t FOS_Thread_SetNote(fos_thread_t *p, fos_note_type_t type, uint32_t not
 
 // get note pointer
 fos_thr_note_t* FOS_Thread_GetNotePtr(fos_thread_t *p);
+
+// get ep_wa
+uint32_t FOS_Thread_GetEpA(fos_thread_t *p);
 
 
 

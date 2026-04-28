@@ -1,5 +1,15 @@
 # FOS versions
 
+## FOS v1.0.6 build 08 28.04.2026 api-1
+
+* Added the thread function with arguments
+* Added `Wait` function
+* Added `GetWaitStatus` for `Wait` function
+* Added checking while creating threads
+* Fixed some potentially bugs while context swith
+* Fixed a bug while manuiually error set
+* Fixed a bug while unsucsess creating queue32
+
 ## FOS v1.0.5 build 07 03.04.2026 api-1
 
 * Added mutex
@@ -44,39 +54,39 @@
 * Added Join thread method
 * Added IsAlive thread method
 
-## FOS v0.13 built 18.03.24
+## FOS v0.13 built 18.03.2024
 
 * Added support of ARM Cortex-M4 core
 * Added adjustable context swith time
 * Fixed some bugs
 
-## FOS v0.12 built 12.03.24
+## FOS v0.12 built 12.03.2024
 
 * System calls optimization
 * OS config optimization
 
-## FOS v0.11 built 27.02.24
+## FOS v0.11 built 27.02.2024
 
 * Added the support of GCC v7-2018-q2-update with no optimization
 
-## FOS v0.10 built 14.02.24
+## FOS v0.10 built 14.02.2024
 
 * The first version of RTOS. It supports Arm Cortex M7 only with FPU using.
 * OS has been tested by IAR Compiler Arm 8.22.1.15700
 * All optimization levels are supported except "Common subexpression elimination" and "Instruction scheduling"
 
-## FOS v0.10 beta built 14.02.24
+## FOS v0.10 beta built 14.02.2024
 
 * The code is prepared for publications
 
-## FOS v0.10 alpha built 14.02.24
+## FOS v0.10 alpha built 14.02.2024
 
 * 6 Feb - 14 Feb 2024
 * The user id is created for threads and binary semaphores
 * The file writers creation is dynamically now
 * The file writers are improved
 
-## FOS v0.09 alpha bult 05.02.24
+## FOS v0.09 alpha bult 05.02.2024
 
 * 30 Jan - 5 Feb 2024
 * API has been created
@@ -88,7 +98,7 @@
 * Thread termination by id has been created
 * Error catcher has been created
 
-## FOS v0.08 alpha bult 22.01.24
+## FOS v0.08 alpha bult 22.01.2024
 
 * 15 Jan - 22 Jan 2024
 * Thread manager is improved
@@ -98,7 +108,7 @@
 * Heap is created
 * Thread creation is dynamically now
 
-## FOS v0.07 alpha bult 23.11.23
+## FOS v0.07 alpha bult 23.11.2023
 
 * 22 Nov - 23 nov 2023
 * The file writers are improved
@@ -108,13 +118,13 @@
 * 4 Aug 2023
 * The file writers are improved
 
-## FOS v0.05 alpha bult 12.07.23
+## FOS v0.05 alpha bult 12.07.2023
 
 * 7 Jul - 12 Jul 2023
 * Bug fix
 * The file writers are improved
 
-## FOS v0.04 alpha bult 08.06.23
+## FOS v0.04 alpha bult 08.06.2023
 
 * 26 May - 8 Jun 2023
 * Thread lock an unlock have been created
@@ -124,13 +134,13 @@
 * Idle thread is system now
 * File system is added
 
-## FOS v0.03 alpha bult 18.05.23
+## FOS v0.03 alpha bult 18.05.2023
 
 * 15 May - 18 May 2023
 * Thread priority and state are added
 * Thread scheduler is developed
 
-## FOS v0.02 alpha bult 02.05.23
+## FOS v0.02 alpha bult 02.05.2023
 
 * 26 Apr - 2 May 2023
 * Simple scheduler is created
@@ -139,7 +149,7 @@
 * Context save and load are added
 * FPU support is added
 
-## FOS v0.01 alpha bult 25.04.23
+## FOS v0.01 alpha bult 25.04.2023
 
 * 25 Apr 2023
 * First context switch is developed

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.2.01
- * @date      01.04.2026
+ * @version   V1.2.03
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -92,7 +92,7 @@ void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 //	if(p->var.mode != FOS__THREAD_NO_INIT)
 //		return;
 
-	strncpy(p->name, init->name_ptr, FOS_THR_NAME_LEN);
+	strncpy(p->name, init->name_ptr, FOS_THR_NAME_LEN - 1);
 	memcpy(&p->cset, &init->cset, sizeof(fos_thread_cset_t));
 	memcpy(&p->set, &init->set, sizeof(fos_thread_set_t));
 	memset(&p->var, 0, sizeof(fos_thread_var_t));
@@ -196,7 +196,7 @@ fos_ret_t FOS_Thread_SetTerminateFlag(fos_thread_t *p, int32_t terminate_code)
 
 
 // усыпить поток
-void FOS_ThreadSleep(fos_thread_t *p, uint32_t time)
+void FOS_ThreadSleep(fos_thread_t *p, uint32_t time, fos_sw_t signal_sw)
 {
 	if(p == NULL)
 		return;
@@ -209,7 +209,10 @@ void FOS_ThreadSleep(fos_thread_t *p, uint32_t time)
 	else
 		p->var.wake_up_time = SL_GetTick() + time;
 
-	p->var.state = FOS__THREAD_BLOCKED;
+	p->var.state     = FOS__THREAD_BLOCKED;
+	p->var.signal_sw = signal_sw;               // сохраняем статус ожидания сигнала
+	if(signal_sw == FOS__ENABLE)                // если ждем сигнал
+		p->var.note_ptr->stat = 0;              // сброс статуса сообщений (установка при получении сигнала)
 }
 
 
@@ -237,7 +240,7 @@ void FOS_ThreadLock(fos_thread_t *p, uint32_t lock)
 	FOS_ThreadSetLockFlag(p, lock);
 
 	if(p->var.lock_flag)
-		FOS_ThreadSleep(p, FOS_INF_TIME);
+		FOS_ThreadSleep(p, FOS_INF_TIME, FOS__DISABLE);
 }
 
 
@@ -395,11 +398,19 @@ fos_ret_t FOS_Thread_SetNote(fos_thread_t *p, fos_note_type_t type, uint32_t not
 	{
 	case FOS_NOTE_TYPE__SYS:
 		p->var.note_ptr->sys |= note;
+		p->var.note_ptr->stat |= FOS_NOTE_STAT_SYS;
 	break;
 
 	case FOS_NOTE_TYPE__USER:
 		p->var.note_ptr->user |= note;
+		p->var.note_ptr->stat |= FOS_NOTE_STAT_USER;
 	break;
+	}
+
+	if(p->var.signal_sw == FOS__ENABLE)
+	{
+		p->var.signal_sw = FOS__DISABLE;
+		FOS_ThreadWeakUp(p);
 	}
 
 	return FOS__OK;
@@ -413,6 +424,16 @@ fos_thr_note_t* FOS_Thread_GetNotePtr(fos_thread_t *p)
 		return NULL;
 
 	return (fos_thr_note_t*)p->var.note_ptr;
+}
+
+
+// get ep_wa
+uint32_t FOS_Thread_GetEpA(fos_thread_t *p)
+{
+	if(p == NULL)
+		return 0;
+
+	return p->cset.ep_wa;
 }
 
 

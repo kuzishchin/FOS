@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fwriter.h
  * @brief     API for the file writer object. Header file.
- * @version   V1.0.02
- * @date      02.04.2026
+ * @version   V1.0.03
+ * @date      13.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -34,6 +34,8 @@
  * p    - pointer to the writer object
  * path - path to the file
  * Returns execution result
+ *
+ * Actual from v0.10
  */
 fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path);
 
@@ -43,6 +45,8 @@ fos_ret_t API_FWriter_Open(fwriter_t *p, fsys_path_t *path);
  * Call from the owner thread
  * p - pointer to the writer object
  * Returns execution result
+ *
+ * Actual from v0.10
  */
 fos_ret_t API_FWriter_Close(fwriter_t *p);
 
@@ -52,6 +56,8 @@ fos_ret_t API_FWriter_Close(fwriter_t *p);
  * Call from the owner thread
  * p - pointer to the writer object
  * Returns execution result
+ *
+ * Actual from v0.10
  */
 fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p);
 
@@ -64,6 +70,8 @@ fos_ret_t API_FWriter_StartWriteTest(fwriter_t *p);
  * data_len - length of the written data
  * Note: written data is copied in one piece
  * Returns execution result
+ *
+ * Actual from v0.10
  */
 fos_ret_t API_FWriter_Write(fwriter_t *p, uint8_t* data, uint32_t data_len);
 
@@ -73,6 +81,8 @@ fos_ret_t API_FWriter_Write(fwriter_t *p, uint8_t* data, uint32_t data_len);
  * Call from the owner thread
  * p - pointer to the writer object
  * Returns execution result
+ *
+ * Actual from v0.10
  */
 fos_ret_t API_FWriter_FSync(fwriter_t *p);
 
@@ -81,6 +91,8 @@ fos_ret_t API_FWriter_FSync(fwriter_t *p);
  * 6.2.7 Receive file state
  * p - pointer to the writer object
  * Returns file state
+ *
+ * Actual from v0.10
  */
 file_state_t API_FWriter_GetFileState(fwriter_t *p);
 

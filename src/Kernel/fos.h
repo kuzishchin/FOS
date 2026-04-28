@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.5.06
- * @date      02.04.2026
+ * @version   V1.5.09
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,6 +31,7 @@
 #include "Sync/fos_mutex.h"
 #include "File/fwriter.h"
 #include "Data/fos_queue32.h"
+#include "Data/fos_log.h"
 
 /*
  * A thread is described by index and descriptor
@@ -80,6 +81,8 @@ typedef struct
 	volatile uint8_t  obj_to_del_cnt;                                  // count objects to delete
 	volatile obj_to_del_t obj_to_del[FOS_MAX_OBJ_TO_DEL];              // list of addres of objects to delete
 
+	volatile fos_log_t log;                                            // log
+
 } fos_var_t;
 
 // OS basic structure
@@ -100,6 +103,9 @@ fos_ret_t FOS_Start(fos_t *p);
 
 // get thread identifier by user defined descriptor
 uint8_t FOS_GetUdThreadId(fos_t *p, user_desc_t user_desc);
+
+// get thread user descriptor by thread ID
+user_desc_t FOS_GetUdThreadById(fos_t *p, uint8_t id);
 
 // get semaphore binary user descriptor by thread ID
 user_desc_t FOS_GetThreadSembId(fos_t *p, uint8_t id);
@@ -132,7 +138,7 @@ void FOS_Yield();
 //fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time);
 
 // send current thread to sleep
-fos_ret_t FOS_Sleep(fos_t *p, uint32_t time);
+fos_ret_t FOS_Sleep(fos_t *p, uint32_t time, fos_sw_t is_waiting);
 
 // set blocking to thread with identifier
 fos_ret_t FOS_LockId(fos_t *p, uint8_t id, uint32_t lock);
@@ -239,11 +245,20 @@ fos_ret_t FOS_SetNoteId(fos_t *p, uint8_t id, fos_note_type_t type, uint32_t not
 // get thread note pointer
 fos_thr_note_t* FOS_GetThreadNotePtr(fos_t *p);
 
+// get ep_wa
+uint32_t FOS_GetThreadEpA(fos_t *p);
+
 // get the system stack debug info
 fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p);
 
 // get the scheduler debug info
 fos_scheduler_dbg_t* FOS_GetSchedulerDbgInfo(fos_t *p);
+
+// write in thread safe mode
+fos_ret_t FOS_LogData(fos_t* p, char *str, fos_log_src_t src, fos_log_type_t type);
+
+// read index
+fos_ret_t FOS_LogRead(fos_t* p, fos_log_node_t* node_ptr);
 
 // main loop handler
 void FOS_MainLoopProc(fos_t *p);

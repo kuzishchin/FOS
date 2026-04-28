@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_mutex.c
  * @brief     Mutex. Source file.
- * @version   V1.0.01
- * @date      29.03.2026
+ * @version   V1.0.02
+ * @date      27.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -194,7 +194,7 @@ fos_ret_t FOS_Mutex_UnlinkThread(fos_mutex_t *p, uint8_t thr_id)
 		return FOS_SemaphoreBinary_UnlinkThread(p->semb_ptr, thr_id);      // исключаем этот поток из очерди на получение если он там есть
 	}
 
-	return FOS__FAIL;
+//	return FOS__FAIL;
 }
 
 

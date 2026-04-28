@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.h
  * @brief     OS start up functions. Header file.
- * @version   V1.0.04
- * @date      02.04.2026
+ * @version   V1.0.07
+ * @date      13.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -37,6 +37,8 @@
 /*
  * 1.1 Activate the program stack
  * Call in the very beginning of the 'main'
+ *
+ * Actual from v0.10
  */
 #define RUN_FOS_ACTIVATE_PSP_MACRO   \
 		FOS_System_PreparePSP();     \
@@ -46,18 +48,24 @@
 /*
  * 1.2 Initialization and kernel start
  * Call before entering the main loop
+ *
+ * Actual from v0.10
  */
 void RUN_FOS_InitAndRun();
 
 /*
  * 1.3 Main loop handler
  * Call from the main loop
+ *
+ * Actual from v0.10
  */
 void RUN_FOS_MainLoopProc();
 
 /*
  * 1.4 Main timer handler
  * Place to the main timer interrupt handler
+ *
+ * Actual from v0.10
  */
 void RUN_FOS_TimHandler();
 

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.2.04
- * @date      29.03.2026
+ * @version   V1.2.05
+ * @date      10.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -46,6 +46,24 @@ __weak void FOS_Lock_UnlockThread(uint8_t thr_id)
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 }
 
+
+// заглушка на логирование событий
+// реализация через функцию ядра
+// defined in the fos_kernel.c
+__weak fos_ret_t FOS_LogSysData(char *str1, char *str2, uint32_t val, fos_log_type_t type)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
+
+// заглушка получения ud потока по id
+// used via weak callback in the fos_lock.c
+__weak user_desc_t FOS_GetThreadUdCbk(uint8_t id)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS_WRONG_USER_DESC;
+}
 
 
 // инициализация
@@ -107,7 +125,12 @@ fos_ret_t FOS_Lock_Give(fos_lock_t *p, fos_sw_t timeout_flag)
 		{
 			// обработка таймаута
 			if(timeout_flag)
+			{
+#if FOS_DEBUL_LEVEL >= 2
+				FOS_LogSysData("Lock is timeout.", "Thread unlock with", FOS_GetThreadUdCbk(thr_id), FOS_LOG_TYPE__WARNING); // 15+18+10+6=349 symbols
+#endif
 				p->timeout_cnt++;
+			}
 
 			FOS_Lock_UnlockThread(thr_id);    // разблокируем поток
 		}
