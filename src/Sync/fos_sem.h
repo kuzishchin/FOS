@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.h
  * @brief     Counting named strong semaphore. Header file.
- * @version   V1.1.05
- * @date      10.04.2026
+ * @version   V1.2.02
+ * @date      08.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -35,26 +35,16 @@ fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_
 
 // взять
 // поток с FOS_SPECIAL_ID уменьшает счётчик но не блоирует
-fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id);
-
-// получить статус взятия семафора
-// FOS__OK - нормальное взятие семафора, FOS__FAIL - взятие по таймауту
-fos_ret_t FOS_SemaphoreCnt_TakeStat(fos_semaphore_cnt_t *p);
+fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms);
 
 // дать
 fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p);
-
-// обработка таймаута всех семафоров
-void FOS_AllSemaphoreCnt_ProcTimeout(volatile fos_semaphore_cnt_ptr *sem_desc_list, uint8_t sem_max_ind);
 
 // отсоединить поток
 fos_ret_t FOS_SemaphoreCnt_UnlinkThread(fos_semaphore_cnt_t *p, uint8_t thr_id);
 
 // освободить все потоки
 fos_ret_t FOS_SemaphoreCnt_UnlockAll(fos_semaphore_cnt_t *p);
-
-// установить таймаут
-fos_ret_t FOS_SemaphoreCnt_SetTimeout(fos_semaphore_cnt_t *p, uint32_t timeout_ms);
 
 
 

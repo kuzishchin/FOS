@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.2.05
- * @date      10.04.2026
+ * @version   V1.3.02
+ * @date      08.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,11 +28,17 @@
 // инкремент индекса
 static uint8_t Private_FOS_Lock_IncInd(uint8_t ind);
 
+// декремент индекса
+static uint8_t Private_FOS_Lock_DecInd(uint8_t ind);
+
+// поиск индеса массива с нужным id
+static uint8_t Private_FOS_Lock_FindIndById(fos_lock_t *p, uint8_t thr_id);
+
 
 // заглушка на блокировку потока с id
 // реализация через функцию ядра
 // defined in the fos_kernel.c
-__weak void FOS_Lock_LockThread(uint8_t thr_id)
+__weak void FOS_Lock_LockThread(uint8_t thr_id, user_desc_t lock_obj_ud, uint32_t timeout_ms)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 }
@@ -47,25 +53,6 @@ __weak void FOS_Lock_UnlockThread(uint8_t thr_id)
 }
 
 
-// заглушка на логирование событий
-// реализация через функцию ядра
-// defined in the fos_kernel.c
-__weak fos_ret_t FOS_LogSysData(char *str1, char *str2, uint32_t val, fos_log_type_t type)
-{
-	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
-	return FOS__FAIL;
-}
-
-
-// заглушка получения ud потока по id
-// used via weak callback in the fos_lock.c
-__weak user_desc_t FOS_GetThreadUdCbk(uint8_t id)
-{
-	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
-	return FOS_WRONG_USER_DESC;
-}
-
-
 // инициализация
 void FOS_Lock_Init(fos_lock_t *p)
 {
@@ -77,9 +64,21 @@ void FOS_Lock_Init(fos_lock_t *p)
 }
 
 
-// взять блокировку; блокирует поток с id = thr_id
-fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id)
+// set ud of the owner
+void FOS_Lock_SetOwnerUd(fos_lock_t *p, user_desc_t owner_ud)
 {
+	if(p == NULL)
+		return;
+	p->owner_ud = owner_ud;
+}
+
+
+// взять блокировку; блокирует поток с id = thr_id
+fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id, uint32_t timeout_ms)
+{
+	if(timeout_ms == 0)
+		return FOS__FAIL;
+
 	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
 		return FOS__FAIL;
 
@@ -96,17 +95,14 @@ fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id)
 
 	p->lock_thr_cnt++;              // инкермент счётчика заблокированных потоков
 
-	FOS_Lock_LockThread(thr_id);    // блокируем поток
-
-//	if(p->timeout_flag)             // индикация что был таймаут
-//		return FOS__FAIL;
+	FOS_Lock_LockThread(thr_id, p->owner_ud, timeout_ms);    // блокируем поток
 
 	return FOS__OK;
 }
 
 
 // отдать блокировку; разблокирует заблокированные потоки в порядке очереди их блокировки
-fos_ret_t FOS_Lock_Give(fos_lock_t *p, fos_sw_t timeout_flag)
+fos_ret_t FOS_Lock_Give(fos_lock_t *p)
 {
 	if(p == NULL)
 		return FOS__FAIL;
@@ -119,21 +115,10 @@ fos_ret_t FOS_Lock_Give(fos_lock_t *p, fos_sw_t timeout_flag)
 		p->lock_thr_is_list[p->first_lock_thr] = FOS_WRONG_THREAD_ID;    // удаляем id этого потока из массива
 		p->first_lock_thr = Private_FOS_Lock_IncInd(p->first_lock_thr);  // инкремент индекса первого заблокированного потока
 
-		p->lock_thr_cnt--;                // декремент счётчика заблокированных потоков
+		p->lock_thr_cnt--;                      // декремент счётчика заблокированных потоков
 
-		if(thr_id != FOS_WRONG_THREAD_ID)     // если поток существующий
-		{
-			// обработка таймаута
-			if(timeout_flag)
-			{
-#if FOS_DEBUL_LEVEL >= 2
-				FOS_LogSysData("Lock is timeout.", "Thread unlock with", FOS_GetThreadUdCbk(thr_id), FOS_LOG_TYPE__WARNING); // 15+18+10+6=349 symbols
-#endif
-				p->timeout_cnt++;
-			}
-
-			FOS_Lock_UnlockThread(thr_id);    // разблокируем поток
-		}
+		if(thr_id != FOS_WRONG_THREAD_ID)       // если поток существующий
+			FOS_Lock_UnlockThread(thr_id);      // разблокируем поток
 	}
 
 	return FOS__OK;
@@ -148,7 +133,7 @@ uint8_t FOS_Lock_GetLockedThreadsCount(fos_lock_t *p)
 	return p->lock_thr_cnt;
 }
 
-
+/*
 // отсоединить поток от блокиратора
 fos_ret_t FOS_Lock_UnlinkThread(fos_lock_t *p, uint8_t thr_id)
 {
@@ -165,12 +150,36 @@ fos_ret_t FOS_Lock_UnlinkThread(fos_lock_t *p, uint8_t thr_id)
 	}
 
 	return FOS__FAIL;
+}*/
+
+
+
+// отсоединить поток от блокиратора
+fos_ret_t FOS_Lock_UnlinkThread(fos_lock_t *p, uint8_t thr_id)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+
+	uint8_t i = Private_FOS_Lock_FindIndById(p, thr_id);
+	if(i == FOS_WRONG_THREAD_ID)
+		return FOS__FAIL;
+
+	uint8_t j;
+	uint8_t curr_id = p->lock_thr_is_list[i];
+	while(curr_id != FOS_WRONG_THREAD_ID)
+	{
+		j = Private_FOS_Lock_IncInd(i);
+		p->lock_thr_is_list[i] = p->lock_thr_is_list[j];
+		curr_id = p->lock_thr_is_list[i];
+		i = Private_FOS_Lock_IncInd(i);
+	}
+
+	p->lock_thr_cnt--;
+	p->last_lock_thr = Private_FOS_Lock_DecInd(p->last_lock_thr);
+
+	return FOS__OK;
 }
-
-
-
-
-
 
 
 // инкремент индекса
@@ -183,7 +192,24 @@ static uint8_t Private_FOS_Lock_IncInd(uint8_t ind)
 }
 
 
+// декремент индекса
+static uint8_t Private_FOS_Lock_DecInd(uint8_t ind)
+{
+	ind--;
+	if(ind >= FOS_MAX_THR_CNT)
+		ind = FOS_MAX_THR_CNT - 1;
+	return ind;
+}
 
+
+// поиск индеса массива с нужным id
+static uint8_t Private_FOS_Lock_FindIndById(fos_lock_t *p, uint8_t thr_id)
+{
+	for(uint8_t i = 0; i < FOS_MAX_THR_CNT; i++)
+		if(thr_id == p->lock_thr_is_list[i])
+			return i;
+	return FOS_WRONG_THREAD_ID;
+}
 
 
 

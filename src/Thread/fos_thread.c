@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.2.03
- * @date      10.04.2026
+ * @version   V1.3.00
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -25,6 +25,9 @@
 #include "Platform/sl_platform.h"
 #include <string.h>
 
+
+// разбудить поток
+static void FOS_ThreadWeakUp(fos_thread_t *p);
 
 // получить адрес максимальной отметки заполнения стека
 #ifdef FOS_STACK_CHECK_PERIOD_MS
@@ -79,6 +82,16 @@ __weak fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
 __weak void SYS_FOS_ErrorSet(fos_err_t *err)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+}
+
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+// defined in the fos_kernel.c
+__weak fos_ret_t Kernel_FOS_UnlinkThreadFromSem(user_desc_t sem, user_desc_t thr_ud)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
 }
 
 
@@ -217,7 +230,7 @@ void FOS_ThreadSleep(fos_thread_t *p, uint32_t time, fos_sw_t signal_sw)
 
 
 // разбудить поток
-void FOS_ThreadWeakUp(fos_thread_t *p)
+static void FOS_ThreadWeakUp(fos_thread_t *p)
 {
 	if(p == NULL)
 		return;
@@ -229,7 +242,7 @@ void FOS_ThreadWeakUp(fos_thread_t *p)
 
 
 // установить блокировку на поток
-void FOS_ThreadLock(fos_thread_t *p, uint32_t lock)
+void FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms)
 {
 	if(p == NULL)
 		return;
@@ -240,7 +253,13 @@ void FOS_ThreadLock(fos_thread_t *p, uint32_t lock)
 	FOS_ThreadSetLockFlag(p, lock);
 
 	if(p->var.lock_flag)
-		FOS_ThreadSleep(p, FOS_INF_TIME, FOS__DISABLE);
+	{
+		p->var.lock_obj_ud = lock_obj_ud;
+		FOS_ThreadSleep(p, timeout_ms, FOS__DISABLE);
+
+		if(p->var.ret_val_ptr)
+			p->var.ret_val_ptr->timeout_flag = FOS__DISABLE;
+	}
 }
 
 
@@ -256,9 +275,11 @@ void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock)
 	FOS_ThreadReleaseLockFlag(p, lock);
 
 	if(!p->var.lock_flag)
+	{
+		p->var.lock_obj_ud = FOS_WRONG_USER_DESC;
 		FOS_ThreadWeakUp(p);
+	}
 }
-
 
 
 // is thread run
@@ -318,16 +339,10 @@ fos_ret_t FOS_Thread_SetHeapState(fos_thread_t *p, fos_ret_t state)
 	if(p == NULL)
 		return FOS__FAIL;
 
-	switch(state)
-	{
-	case FOS__OK:
+	if(state == FOS__OK)
 		p->var.heap_sw = FOS__ENABLE;
-	break;
-
-	case FOS__FAIL:
+	else
 		p->var.heap_sw = FOS__DISABLE;
-	break;
-	}
 
 	return FOS__OK;
 }
@@ -437,8 +452,27 @@ uint32_t FOS_Thread_GetEpA(fos_thread_t *p)
 }
 
 
+// add returned value pointer
+fos_ret_t FOS_Thread_AddRValPtr(fos_thread_t *p, fos_ret_val_t *ret_val_ptr)
+{
+	if((p == NULL) || (ret_val_ptr == NULL))
+		return FOS__FAIL;
+
+	memset(ret_val_ptr, 0, sizeof(fos_ret_val_t));
+	p->var.ret_val_ptr = ret_val_ptr;
+
+	return FOS__OK;
+}
 
 
+// get returned value pointer
+fos_ret_val_t* FOS_Thread_GetRValPtr(fos_thread_t *p)
+{
+	if(p == NULL)
+		return NULL;
+
+	return (fos_ret_val_t*)p->var.ret_val_ptr;
+}
 
 
 // получить адрес максимальной отметки заполнения стека
@@ -469,10 +503,21 @@ static void FOS_ThreadProcState(fos_thread_t *p)
 	/*
 	 * Проврека на условие автопробуждения по таймингу
 	 */
-	if((v->state == FOS__THREAD_BLOCKED) && (v->wake_up_time != 0) && (!v->lock_flag))
+	if((v->state == FOS__THREAD_BLOCKED) && (v->wake_up_time != 0))
 	{
 		if(SL_GetTick() >= v->wake_up_time)
+		{
 			v->state = FOS__THREAD_READY;
+
+			if(v->lock_flag)
+			{
+				v->lock_flag = 0;
+				Kernel_FOS_UnlinkThreadFromSem(v->lock_obj_ud, p->user_desc);
+
+				if(p->var.ret_val_ptr)
+					p->var.ret_val_ptr->timeout_flag = FOS__ENABLE;
+			}
+		}
 	}
 
 	FOS_ThreadProcDbg(&p->dbg, p->user_desc);     // обработать отладку потока

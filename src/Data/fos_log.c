@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lof.c
  * @brief     Logger. Source file.
- * @version   V1.0.02
- * @date      10.04.2026
+ * @version   V1.0.03
+ * @date      29.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -154,7 +154,7 @@ uint32_t FOS_LogNode_GetString(fos_log_node_t* p, char *str, uint32_t len)
 	break;
 	}
 
-	return snprintf(str, len, "%i %s_%s at %ims from ud=%i: %s\r\n", (int)p->num, src, type, (int)p->ts, (int)p->user_desc, p->str);
+	return snprintf(str, len, "%i %s_%s at %ims from ud=0x%08X: %s\r\n", (int)p->num, src, type, (int)p->ts, (int)p->user_desc, p->str);
 }
 
 

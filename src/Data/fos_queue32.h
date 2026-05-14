@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.h
  * @brief     API of OS for queue32. Header file.
- * @version   V1.0.02
- * @date      23.01.2026
+ * @version   V1.0.04
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -54,7 +54,7 @@ fos_ret_t FOS_Queue32_WriteData(fos_queue32_t* p, uint32_t data);
 
 // ask data
 // if thr_id == FOS_SPECIAL_ID semafore is taken but thread is not blocked
-fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id);
+fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout_ms);
 
 // read data
 // one must ask data before read every times

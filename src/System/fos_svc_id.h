@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svc_id.h
  * @brief     System call IDs. Header file.
- * @version   V1.2.11
- * @date      08.04.2026
+ * @version   V1.2.13
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -26,7 +26,7 @@
 
 #define FOS_SYSCALL_FOS_YIELD               0x00        // void FOS_Yield();
 #define FOS_SYSCALL_FOS_SLEEP               0x01        // fos_ret_t Kernel_FOS_Sleep(uint32_t time, fos_sw_t is_waiting);
-#define FOS_SYSCALL_FOS_SEMB_TAKE           0x02        // fos_ret_t Kernel_FOS_SemBinaryTake(fos_semaphore_binary_t *semb);
+#define FOS_SYSCALL_FOS_SEMB_TAKE           0x02        // fos_ret_t Kernel_FOS_SemBinaryTake(fos_semaphore_binary_t *semb, uint32_t timeout_ms);
 #define FOS_SYSCALL_FOS_SEMB_GIVE           0x03        // fos_ret_t Kernel_FOS_SemBinaryGive(fos_semaphore_binary_t *semb);
 #define FOS_SYSCALL_FOS_CREATE_THREAD       0x04        // fos_thread_t* Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init);
 #define FOS_SYSCALL_FOS_CREATE_SEMB         0x05        // fos_semaphore_binary_t* Kernel_FOS_CreateSemBinary(fos_semb_state_t init_state);
@@ -38,25 +38,25 @@
 #define FOS_SYSCALL_FILE_UNMOUNT            0x0B        // file_err_t File_Unmount(uint8_t dev_num);
 #define FOS_SYSCALL_FOS_DELETE_SEMB         0x0C        // fos_ret_t Kernel_FOS_DeleteSemBinary(user_desc_t semb);
 #define FOS_SYSCALL_FOS_GET_THREAD_SEMB_D   0x0D        // user_desc_t Kernel_FOS_GetThreadSembDesc(user_desc_t desc);
-#define FOS_SYSCALL_FOS_SEMB_SET_TIMEOUT    0x0E        // fos_ret_t Kernel_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
-#define FOS_SYSCALL_FOS_SEMC_TAKE           0x0F        // fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc);
+//#define FOS_SYSCALL_FOS_SEMB_SET_TIMEOUT    0x0E        // fos_ret_t Kernel_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_SEMC_TAKE           0x0F        // fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms);
 #define FOS_SYSCALL_FOS_SEMC_GIVE           0x10        // fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semc);
 #define FOS_SYSCALL_FOS_CREATE_SEMC         0x11        // user_desc_t Kernel_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
 #define FOS_SYSCALL_FOS_DELETE_SEMC         0x12        // fos_ret_t Kernel_FOS_DeleteSemCnt(user_desc_t semc);
-#define FOS_SYSCALL_FOS_SEMC_SET_TIMEOUT    0x13        // fos_ret_t Kernel_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms);
-#define FOS_SYSCALL_FOS_QUEUE_32_CREATE     0x14        // user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms);
+//#define FOS_SYSCALL_FOS_SEMC_SET_TIMEOUT    0x13        // fos_ret_t Kernel_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_QUEUE_32_CREATE     0x14        // user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode);
 #define FOS_SYSCALL_FOS_QUEUE_32_DELETE     0x15        // fos_ret_t Kernel_FOS_DeleteQueue32(user_desc_t que);
-#define FOS_SYSCALL_FOS_QUEUE_32_READ       0x16        // fos_ret_t Kernel_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr, fos_queue_sw_t blocking_mode_sw);
+#define FOS_SYSCALL_FOS_QUEUE_32_READ       0x16        // fos_ret_t Kernel_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr);
 #define FOS_SYSCALL_FOS_QUEUE_32_WRITE      0x17        // fos_ret_t Kernel_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
-#define FOS_SYSCALL_FOS_QUEUE_32_ASK        0x18        // fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw);
-#define FOS_SYSCALL_FOS_SEMB_TAKE_STAT      0x19        // fos_ret_t Kernel_FOS_SemBinaryTakeStat(user_desc_t semb);
-#define FOS_SYSCALL_FOS_SEMC_TAKE_STAT      0x1A        // fos_ret_t Kernel_FOS_SemCntTakeStat(user_desc_t semc);
+#define FOS_SYSCALL_FOS_QUEUE_32_ASK        0x18        // fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms);
+//#define FOS_SYSCALL_FOS_SEMB_TAKE_STAT      0x19        // fos_ret_t Kernel_FOS_SemBinaryTakeStat(user_desc_t semb);
+//#define FOS_SYSCALL_FOS_SEMC_TAKE_STAT      0x1A        // fos_ret_t Kernel_FOS_SemCntTakeStat(user_desc_t semc);
 #define FOS_SYSCALL_FOS_IS_THREAD_ALIVE     0x1B        // fos_ret_t KernelFOS_IsThreadAlive(user_desc_t desc);
 #define FOS_SYSCALL_FOS_GET_CURRENT_THR_UD  0x1C        // user_desc_t Kernel_FOS_GetCurrentThreadUd();
-#define FOS_SYSCALL_FOS_CREATE_MUTEX        0x1D        // user_desc_t Kernel_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type);
+#define FOS_SYSCALL_FOS_CREATE_MUTEX        0x1D        // user_desc_t Kernel_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority);
 #define FOS_SYSCALL_FOS_DELETE_MUTEX        0x1E        // fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex);
-#define FOS_SYSCALL_FOS_MUTEX_TAKE          0x2F        // fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex);
-#define FOS_SYSCALL_FOS_MUTEX_SO_TAKE_STAT  0x20        // fos_ret_t Kernel_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex);
+#define FOS_SYSCALL_FOS_MUTEX_TAKE          0x2F        // fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_MUTEX_SET_OWNER     0x20        // fos_ret_t Kernel_FOS_MutexSetOwner(user_desc_t mutex);
 #define FOS_SYSCALL_FOS_MUTEX_GIVE          0x21        // fos_ret_t Kernel_FOS_MutexGive(user_desc_t mutex);
 #define FOS_SYSCALL_FOS_LOCAL_ALLOC         0x22        // void* Kernel_FOS_LocalAlloc(uint32_t size_bytes);
 #define FOS_SYSCALL_FOS_LOCAL_FREE          0x23        // fos_ret_t Kernel_FOS_LocalFree(void* ptr);

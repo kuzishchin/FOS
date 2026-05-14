@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_mutex.h
  * @brief     AMutex. Header file.
- * @version   V1.0.02
- * @date      27.04.2026
+ * @version   V1.1.02
+ * @date      08.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -40,11 +40,10 @@ fos_ret_t FOS_Mutex_SetSemaphorePtr(fos_mutex_t *p, fos_semaphore_binary_ptr sem
 fos_ret_t FOS_Mutex_SetUserDesc(fos_mutex_t *p, user_desc_t user_desc);
 
 // взять
-fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id);
+fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms);
 
-// установить владельца и получить статус взятия мьютекса
-// FOS__OK - нормальное взятие мьютекса, FOS__FAIL - взятие по таймауту
-fos_ret_t FOS_Mutex_SetOwnerAndTakeStat(fos_mutex_t *p, uint8_t thr_id);
+// установить владельца
+fos_ret_t FOS_Mutex_SetOwner(fos_mutex_t *p, uint8_t thr_id);
 
 // дать
 fos_ret_t FOS_Mutex_Give(fos_mutex_t *p, uint8_t thr_id);

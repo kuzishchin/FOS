@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_context.c
  * @brief     Low level functional for context switch. Source file.
- * @version   V1.0.04
- * @date      27.04.2026
+ * @version   V1.0.05
+ * @date      06.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -149,7 +149,7 @@ __attribute__((optimize("O0"))) void PendSV_Handler()
 		/*
 		 * TO DO: настройка MPU
 		 */
-		fos_mgv.unpriv_mode = 1;                 // пока так
+//		fos_mgv.unpriv_mode = 1;                 // пока так
 		DSB();                                   // барьер для данных
 		ISB();                                   // барьер для инструкций
 #endif
@@ -180,7 +180,7 @@ __attribute__((optimize("O0"))) void PendSV_Handler()
 		/*
 		 * TO DO: настройка MPU
 		 */
-		fos_mgv.unpriv_mode = 0;                 // пока так
+		fos_mgv.unpriv_mode = 0;                 // сбрасываем флаг непривилегированного режима
 		DSB();                                   // барьер для данных
 		ISB();                                   // барьер для инструкций
 #endif

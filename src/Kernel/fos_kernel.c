@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.c
  * @brief     Kernel. Source file.
- * @version   V1.5.13
- * @date      27.04.2026
+ * @version   V1.5.19
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -32,7 +32,7 @@ static fos_t fos;                                          // OS
 
 extern uint32_t kernel_stack[FOS_KERNEL_STACK_SIZE / 4];   // kernel stack
 
-static char *FOS_ver = "FOS version 1.0.6 build 08 28.04.2026 api-1\r\n\0";  // FOS version
+static char *FOS_ver = "FOS version 1.0.7 build 10 08.05.2026 api-1.1\r\n\0";  // FOS version
 
 static fwriter_t* fptr = NULL;
 
@@ -67,7 +67,11 @@ static fwriter_t* Private_Kernel_FOS_CreateFWriterObj();
 // create the queue32 object
 static fos_queue32_t* Private_Kernel_FOS_CreateQueue32Obj();
 
+// create note
 static fos_thr_note_t* Private_Kernel_FOS_CreateNoteObj(uint8_t thr_id);
+
+// create ret val object
+static fos_ret_val_t* Private_Kernel_FOS_CreateRValObj(uint8_t thr_id);
 
 // initialize and register the binary semaphore
 static fos_ret_t Private_Kernel_FOS_SemBinaryInitAndReg(fos_semaphore_binary_t *semb, fos_semb_state_t init_state);
@@ -92,7 +96,6 @@ static void Private_Kernel_FOS_GarbageCollection();
 
 // system etry point to start the thread with arguments
 static void Private_Kernel_FOS_StartThreadWithArgs();
-
 
 // the prototype of error catch
 // defined in the fos_system.c
@@ -207,6 +210,15 @@ fos_ret_t Kernel_FOS_Start()
 }
 
 
+// OS main loop proc
+void Kernel_FOS_MainLoopProc()
+{
+	Private_Kernel_FOS_GarbageCollection();    // garbage collection
+	FOS_Heap_MainLoopProc();                   // heap debug
+	FOS_MainLoopProc(&fos);                    // kernel proc
+}
+
+
 // creat thread
 user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 {
@@ -262,7 +274,7 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 	{
 		// error proc
 #if FOS_DEBUL_LEVEL >= 1
-	Kernel_FOS_LogSysData2("Creating thread error. Cannot create  semaphore thread. Name=", user_init->name_ptr, FOS_LOG_TYPE__ERROR); // 61+16+1=78 symbols
+	Kernel_FOS_LogSysData2("Creating thread error. Cannot create semaphore thread. Name=", user_init->name_ptr, FOS_LOG_TYPE__ERROR); // 61+16+1=78 symbols
 #endif
 		FOS_Heap_KernelHeap_Free(thr_ptr);
 		FOS_Heap_ThreadsHeap_Free(thread_mem_ptr);
@@ -331,6 +343,16 @@ user_desc_t Kernel_FOS_CreateThread(fos_thread_user_init_t *user_init)
 			Kernel_FOS_LogSysData3("Creating thread error. Cannot allocate memory for the note. Name=", user_init->name_ptr, thr_ptr->user_desc, FOS_LOG_TYPE__ERROR); // 65+16+10+6=97 symbols
 #endif
 		}
+
+		fos_ret_val_t* rv_ptr = Private_Kernel_FOS_CreateRValObj(thr_id);
+		FOS_Thread_AddRValPtr(thr_ptr, rv_ptr);
+		if(rv_ptr)
+			rv_ptr->sign = FOS_NOTE_SIGN;
+		else{
+#if FOS_DEBUL_LEVEL >= 1
+			Kernel_FOS_LogSysData3("Creating thread error. Cannot allocate memory for the rv. Name=", user_init->name_ptr, thr_ptr->user_desc, FOS_LOG_TYPE__ERROR); // 63+16+10+6=95 symbols
+#endif
+		}
 	}
 
 #if FOS_DEBUL_LEVEL >= 3
@@ -347,7 +369,7 @@ fos_ret_t Kernel_FOS_RunDesc(user_desc_t desc)
 #if FOS_DEBUL_LEVEL >= 3
 	Kernel_FOS_LogSysData3("Thread is running.", "Thread", desc, FOS_LOG_TYPE__INFO); // 18+6+10+6=40 symbols
 #endif
-	return FOS_RunId(&fos, FOS_GetUdThreadId(&fos, desc));
+	return FOS_RunId(&fos, FOS_GetThreadIdByUd(&fos, desc));
 }
 
 
@@ -360,13 +382,20 @@ fos_ret_t Kernel_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t
 	if((arg_ptr == NULL) || (arg_len == 0))
 		return FOS__FAIL;
 
-	uint8_t* mem_ptr = (uint8_t*)FOS_Heap_LocalHeap_Alloc(arg_len, FOS_GetUdThreadId(&fos, desc));
+	uint8_t* mem_ptr = (uint8_t*)FOS_Heap_LocalHeap_Alloc(arg_len, FOS_GetThreadIdByUd(&fos, desc));
 	if(mem_ptr == NULL)
 		return FOS__FAIL;
 
 	memcpy(mem_ptr, arg_ptr, arg_len);
 
-	return FOS_RunIdWithArg(&fos, FOS_GetUdThreadId(&fos, desc), (uint8_t*)mem_ptr, arg_len);
+	return FOS_RunIdWithArg(&fos, FOS_GetThreadIdByUd(&fos, desc), (uint8_t*)mem_ptr, arg_len);
+}
+
+
+// get user descriptor of the current thread
+user_desc_t Kernel_FOS_GetCurrentThreadUd()
+{
+	return FOS_GetThreadParentUd(&fos);      // a current thread is the same as a parrent
 }
 
 
@@ -394,7 +423,7 @@ fos_ret_t Kernel_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code)
 #if FOS_DEBUL_LEVEL >= 3
 	Kernel_FOS_LogSysData3("Thread is terminating.", "Thread", desc, FOS_LOG_TYPE__INFO); // 22+6+10+6=44 symbols
 #endif
-	return FOS_TerminateId(&fos, FOS_GetUdThreadId(&fos, desc), terminate_code);
+	return FOS_TerminateId(&fos, FOS_GetThreadIdByUd(&fos, desc), terminate_code);
 }
 
 
@@ -462,33 +491,18 @@ fos_ret_t Kernel_FOS_DeleteSemBinary(user_desc_t semb)
 
 
 // take the binary semaphore with picked descriptor
-fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb)
+fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
 		return FOS__FAIL;
-	return FOS_SemBinaryTake(&fos, semb);
-}
-
-
-// get the taking status of the binary semaphore
-// FOS__OK - normal taking, FOS__FAIL - taking with timeout
-fos_ret_t Kernel_FOS_SemBinaryTakeStat(user_desc_t semb)
-{
-	return FOS_SemBinaryTakeStat(&fos, semb);
-}
-
-
-// set the binary semaphore timeout
-fos_ret_t Kernel_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms)
-{
-	return FOS_SemBinarySetTimeout(&fos, semb, timeout_ms);
+	return FOS_SemBinaryTake(&fos, semb, timeout_ms);
 }
 
 
 // get the semaphore binary user descriptor by the thread user descriptor
 user_desc_t Kernel_FOS_GetThreadSembDesc(user_desc_t desc)
 {
-	return FOS_GetThreadSembId(&fos, FOS_GetUdThreadId(&fos, desc));
+	return FOS_GetThreadSembId(&fos, FOS_GetThreadIdByUd(&fos, desc));
 }
 
 
@@ -537,31 +551,16 @@ fos_ret_t Kernel_FOS_DeleteSemCnt(user_desc_t semc)
 
 
 // take the counting semaphore
-fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc)
+fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
 		return FOS__FAIL;
-	return FOS_SemCntTake(&fos, semc);
-}
-
-
-// get taking status of the counting semaphore
-// FOS__OK - normal taking, FOS__FAIL - taking with timeout
-fos_ret_t Kernel_FOS_SemCntTakeStat(user_desc_t semc)
-{
-	return FOS_SemCntTakeStat(&fos, semc);
-}
-
-
-// set the counting semaphore timeout
-fos_ret_t Kernel_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms)
-{
-	return FOS_SemCntSetTimeout(&fos, semc, timeout_ms);
+	return FOS_SemCntTake(&fos, semc, timeout_ms);
 }
 
 
 // create the queue for uint32_t
-user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms)
+user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode)
 {
 	uint32_t queue_buf_len = size * sizeof(uint32_t);
 	void* queue_buf_ptr = FOS_Heap_ThreadsHeap_Alloc(queue_buf_len);
@@ -587,10 +586,7 @@ user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint3
 
 	user_desc_t semc = FOS_WRONG_USER_DESC;
 	if(mode == FOS_QUEUE_MODE__POLL_AND_BLOCK)
-	{
 		semc = Kernel_FOS_CreateSemCnt(size, 0);
-		Kernel_FOS_SemCntSetTimeout(semc, timeout_ms);
-	}
 
 	// initialization and registartion
 	if(Private_Kernel_FOS_Queue32InitAndReg(que_ptr, queue_buf_ptr, size, semc) != FOS__OK)
@@ -617,9 +613,9 @@ fos_ret_t Kernel_FOS_DeleteQueue32(user_desc_t que)
 
 
 // ask data
-fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw)
+fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms)
 {
-	return FOS_Queue32AskData(&fos, que, blocking_mode_sw);
+	return FOS_Queue32AskData(&fos, que, timeout_ms);
 }
 
 
@@ -643,6 +639,156 @@ fos_scheduler_dbg_t* Kernel_FOS_GetSchedulerDbgInfo()
 {
 	return FOS_GetSchedulerDbgInfo(&fos);
 }
+
+
+// create the mutex
+user_desc_t Kernel_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority)
+{
+	fos_mutex_t* mutex_ptr = Private_Kernel_FOS_CreateMutexObj();
+	if(mutex_ptr == NULL)
+	{
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating mutex error. Cannot create the mutex object", FOS_LOG_TYPE__ERROR); // 52 symbols
+#endif
+		return FOS_WRONG_USER_DESC;
+	}
+
+	user_desc_t semb = Kernel_FOS_CreateSemBinary(FOS_SEMB_STATE__UNLOCK);
+	if(semb == FOS_WRONG_USER_DESC)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating mutex error. Cannot create the semaphore of the mutex", FOS_LOG_TYPE__ERROR); // 62 symbols
+#endif
+		FOS_Heap_KernelHeap_Free(mutex_ptr);
+		return FOS_WRONG_USER_DESC;
+	}
+
+	// initialization and registartion
+	if(Private_Kernel_FOS_MutexInitAndReg(mutex_ptr, semb, type, pcp_priority) != FOS__OK)
+	{
+		// error proc
+#if FOS_DEBUL_LEVEL >= 1
+	Kernel_FOS_LogSysData("Creating mutex error. Cannot register the mutex object", FOS_LOG_TYPE__ERROR); // 54 symbols
+#endif
+		Kernel_FOS_DeleteSemBinary(semb);
+		FOS_Heap_KernelHeap_Free(mutex_ptr);
+		return FOS_WRONG_USER_DESC;
+	}
+
+	return mutex_ptr->user_desc;
+}
+
+
+// delete the mutex
+fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex)
+{
+	return FOS_MutexDelete(&fos, mutex);
+}
+
+
+// take the mutex with picked descriptor
+fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms)
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return FOS__FAIL;
+	return FOS_MutexTake(&fos, mutex, timeout_ms);
+}
+
+
+// set owner
+fos_ret_t Kernel_FOS_MutexSetOwner(user_desc_t mutex)
+{
+	return FOS_MutexSetOwner(&fos, mutex);
+}
+
+
+// release mutex
+fos_ret_t Kernel_FOS_MutexGive(user_desc_t mutex)
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return FOS__FAIL;
+	return FOS_MutexGive(&fos, mutex);
+}
+
+
+// allocate thread local memory
+void* Kernel_FOS_LocalAlloc(uint32_t size_bytes)
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return NULL;
+	return FOS_Heap_LocalHeap_Alloc(size_bytes, FOS_GetCurrentThreadId(&fos));
+}
+
+
+// free thread local memory
+fos_ret_t Kernel_FOS_LocalFree(void* ptr)
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return FOS__FAIL;
+	FOS_Heap_LocalHeap_Free(ptr, FOS_GetCurrentThreadId(&fos));
+	return FOS__OK;
+}
+
+
+// get thread note pointer
+fos_thr_note_t* Kernel_FOS_GetThreadNotePtr()
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return NULL;
+	return FOS_GetThreadNotePtr(&fos);
+}
+
+
+// get ep_wa
+uint32_t Kernel_FOS_GetThreadEpA()
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return 0;
+	return FOS_GetThreadEpA(&fos);
+}
+
+
+// get returned values from the thread
+fos_ret_val_t* Kernel_FOS_GetThreadRValPtr()
+{
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		return NULL;
+	return FOS_GetThreadRValPtr(&fos);
+}
+
+
+// read log
+fos_ret_t Kernel_FOS_LogRead(fos_log_node_t* node_ptr)
+{
+	return FOS_LogRead(&fos, node_ptr);
+}
+
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData(char *str, fos_log_type_t type)
+{
+	return FOS_LogData(&fos, str, FOS_LOG_SRC__SYS, type);
+}
+
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData2(char *str1, char *str2, fos_log_type_t type)
+{
+	char str[FOS_MAX_STR_LOG_LEN];
+	snprintf(str, FOS_MAX_STR_LOG_LEN, "%s %s", str1, str2);
+	return Kernel_FOS_LogSysData(str, type);
+}
+
+
+// log system data
+fos_ret_t Kernel_FOS_LogSysData3(char *str1, char *str2, uint32_t val, fos_log_type_t type)
+{
+	char str[FOS_MAX_STR_LOG_LEN];
+	snprintf(str, FOS_MAX_STR_LOG_LEN, "%s %s: ud=0x%08X", str1, str2, (int)val);
+	return Kernel_FOS_LogSysData(str, type);
+}
+
 
 /*
  * **************************************************************
@@ -726,7 +872,7 @@ fwriter_t* Kernel_CreateFWriter(uint16_t write_buf_len)
 
 
 // give the binary semaphore
-// used via weak callback in the fos_api.c
+// used via weak callback in the fos_system.c
 fos_ret_t Kernel_FOS_SemBinaryGive(user_desc_t semb)
 {
 	return FOS_SemBinaryGive(&fos, semb);
@@ -734,7 +880,7 @@ fos_ret_t Kernel_FOS_SemBinaryGive(user_desc_t semb)
 
 
 // give the counting semaphore
-// used via weak callback in the fos_api.c
+// used via weak callback in the fos_system.c
 fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semc)
 {
 	return FOS_SemCntGive(&fos, semc);
@@ -742,7 +888,7 @@ fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semc)
 
 
 // write data to queue32
-// used via weak callback in the fos_api.c
+// used via weak callback in the fos_system.c
 fos_ret_t Kernel_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
 {
 	return FOS_Queue32WriteData(&fos, que, data);
@@ -750,15 +896,15 @@ fos_ret_t Kernel_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
 
 
 // set note to thread by user descriptor
-// used via weak callback in the fos_api.c
+// used via weak callback in the fos_system.c
 fos_ret_t Kernel_FOS_SetNoteDesc(user_desc_t desc, fos_note_type_t type, uint32_t note)
 {
-	return FOS_SetNoteId(&fos, FOS_GetUdThreadId(&fos, desc), type, note);
+	return FOS_SetNoteId(&fos, FOS_GetThreadIdByUd(&fos, desc), type, note);
 }
 
 
 // log user data
-// used via weak callback in the fos_api.c
+// used via weak callback in the fos_system.c
 fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type)
 {
 	if(type & FOS_LOG_FROM_ISR_BIT)
@@ -767,167 +913,18 @@ fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type)
 		return FOS_LogData(&fos, str, FOS_LOG_SRC__USER, (fos_log_type_t)(type & FOS_LOG_TYPE_MASK));
 }
 
-/*
- * **************************************************************
- */
 
-// get user descriptor of the current thread
-user_desc_t Kernel_FOS_GetCurrentThreadUd()
+// unlink thread from the semaphore
+// used via weak callback in the fos_thread.c
+fos_ret_t Kernel_FOS_UnlinkThreadFromSem(user_desc_t sem, user_desc_t thr_ud)
 {
-	return FOS_GetThreadParentUd(&fos);      // a current thread is the same as a parrent
-}
-
-
-// create the mutex
-user_desc_t Kernel_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, uint8_t pcp_priority)
-{
-	fos_mutex_t* mutex_ptr = Private_Kernel_FOS_CreateMutexObj();
-	if(mutex_ptr == NULL)
-	{
-#if FOS_DEBUL_LEVEL >= 1
-	Kernel_FOS_LogSysData("Creating mutex error. Cannot create the mutex object", FOS_LOG_TYPE__ERROR); // 52 symbols
+#if FOS_DEBUL_LEVEL >= 2
+	Kernel_FOS_LogSysData3("Sem is timeout.", "Sem with", sem, FOS_LOG_TYPE__WARNING); // 16+9+10+6=41 symbols
+	Kernel_FOS_LogSysData3("=>", "Thread unlock with", thr_ud, FOS_LOG_TYPE__WARNING); // 2+18+10+6=36 symbols
 #endif
-		return FOS_WRONG_USER_DESC;
-	}
-
-	user_desc_t semb = Kernel_FOS_CreateSemBinary(FOS_SEMB_STATE__UNLOCK);
-	if(semb == FOS_WRONG_USER_DESC)
-	{
-		// error proc
-#if FOS_DEBUL_LEVEL >= 1
-	Kernel_FOS_LogSysData("Creating mutex error. Cannot create the semaphore of the mutex", FOS_LOG_TYPE__ERROR); // 62 symbols
-#endif
-		FOS_Heap_KernelHeap_Free(mutex_ptr);
-		return FOS_WRONG_USER_DESC;
-	}
-
-	Kernel_FOS_SemBinarySetTimeout(semb, timeout_ms);
-
-	// initialization and registartion
-	if(Private_Kernel_FOS_MutexInitAndReg(mutex_ptr, semb, type, pcp_priority) != FOS__OK)
-	{
-		// error proc
-#if FOS_DEBUL_LEVEL >= 1
-	Kernel_FOS_LogSysData("Creating mutex error. Cannot register the mutex object", FOS_LOG_TYPE__ERROR); // 54 symbols
-#endif
-		Kernel_FOS_DeleteSemBinary(semb);
-		FOS_Heap_KernelHeap_Free(mutex_ptr);
-		return FOS_WRONG_USER_DESC;
-	}
-
-	return mutex_ptr->user_desc;
+	return FOS_UnlinkThreadFromSem(&fos, sem, thr_ud);
 }
 
-
-// delete the mutex
-fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex)
-{
-	return FOS_MutexDelete(&fos, mutex);
-}
-
-
-// take the mutex with picked descriptor
-fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex)
-{
-	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return FOS__FAIL;
-	return FOS_MutexTake(&fos, mutex);
-}
-
-
-// get taking status of the mutex and set owner
-// FOS__OK - normal taking, FOS__FAIL - taking with timeout
-fos_ret_t Kernel_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex)
-{
-	return FOS_MutexSetOwnerAndTakeStat(&fos, mutex);
-}
-
-
-// release mutex
-fos_ret_t Kernel_FOS_MutexGive(user_desc_t mutex)
-{
-	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return FOS__FAIL;
-	return FOS_MutexGive(&fos, mutex);
-}
-
-
-// allocate thread local memory
-void* Kernel_FOS_LocalAlloc(uint32_t size_bytes)
-{
-	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return NULL;
-	return FOS_Heap_LocalHeap_Alloc(size_bytes, FOS_GetCurrentThreadId(&fos));
-}
-
-
-// free thread local memory
-fos_ret_t Kernel_FOS_LocalFree(void* ptr)
-{
-	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return FOS__FAIL;
-	FOS_Heap_LocalHeap_Free(ptr, FOS_GetCurrentThreadId(&fos));
-	return FOS__OK;
-}
-
-
-// get thread note pointer
-fos_thr_note_t* Kernel_FOS_GetThreadNotePtr()
-{
-	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return NULL;
-	return FOS_GetThreadNotePtr(&fos);
-}
-
-
-// get ep_wa
-uint32_t Kernel_FOS_GetThreadEpA()
-{
-	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return 0;
-	return FOS_GetThreadEpA(&fos);
-}
-
-
-// read log
-fos_ret_t Kernel_FOS_LogRead(fos_log_node_t* node_ptr)
-{
-	return FOS_LogRead(&fos, node_ptr);
-}
-
-
-// log system data
-fos_ret_t Kernel_FOS_LogSysData(char *str, fos_log_type_t type)
-{
-	return FOS_LogData(&fos, str, FOS_LOG_SRC__SYS, type);
-}
-
-
-// log system data
-fos_ret_t Kernel_FOS_LogSysData2(char *str1, char *str2, fos_log_type_t type)
-{
-	char str[FOS_MAX_STR_LOG_LEN];
-	snprintf(str, FOS_MAX_STR_LOG_LEN, "%s %s", str1, str2);
-	return Kernel_FOS_LogSysData(str, type);
-}
-
-
-// log system data
-fos_ret_t Kernel_FOS_LogSysData3(char *str1, char *str2, uint32_t val, fos_log_type_t type)
-{
-	char str[FOS_MAX_STR_LOG_LEN];
-	snprintf(str, FOS_MAX_STR_LOG_LEN, "%s %s: ud=%i", str1, str2, (int)val);
-	return Kernel_FOS_LogSysData(str, type);
-}
-
-
-// OS main loop proc
-void Kernel_FOS_MainLoopProc()
-{
-	Private_Kernel_FOS_GarbageCollection();    // garbage collection
-	FOS_Heap_MainLoopProc();                   // heap debug
-	FOS_MainLoopProc(&fos);                    // kernel proc
-}
 
 
 /*
@@ -935,34 +932,18 @@ void Kernel_FOS_MainLoopProc()
  */
 
 // callback to thread lock with picked id
-// used via weak callback in the fos_locl.c
-void FOS_Lock_LockThread(uint8_t thr_id)
+// used via weak callback in the fos_lock.c
+void FOS_Lock_LockThread(uint8_t thr_id, user_desc_t lock_obj_ud, uint32_t timeout_ms)
 {
-	FOS_LockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG);
+	FOS_LockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG, lock_obj_ud, timeout_ms);
 }
 
 
 // callback to thread unlock with picked id
-// used via weak callback in the fos_locl.c
+// used via weak callback in the fos_lock.c
 void FOS_Lock_UnlockThread(uint8_t thr_id)
 {
 	FOS_UnlockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG);
-}
-
-
-// callback to log system data
-// used via weak callback in the fos_semb.c, fos_sem.c
-fos_ret_t FOS_LogSysData(char *str1, char *str2, uint32_t val, fos_log_type_t type)
-{
-	return Kernel_FOS_LogSysData3(str1, str2, val, type);
-}
-
-
-// callback to get thread user descriptor by thread ID
-// used via weak callback in the fos_lock.c
-user_desc_t FOS_GetThreadUdCbk(uint8_t id)
-{
-	return FOS_GetUdThreadById(&fos, id);
 }
 
 
@@ -1092,10 +1073,17 @@ static fos_queue32_t* Private_Kernel_FOS_CreateQueue32Obj()
 }
 
 
-// create note
+// create note object
 static fos_thr_note_t* Private_Kernel_FOS_CreateNoteObj(uint8_t thr_id)
 {
 	return (fos_thr_note_t*)FOS_Heap_LocalHeap_Alloc(sizeof(fos_thr_note_t), thr_id);
+}
+
+
+// create ret val object
+static fos_ret_val_t* Private_Kernel_FOS_CreateRValObj(uint8_t thr_id)
+{
+	return (fos_ret_val_t*)FOS_Heap_LocalHeap_Alloc(sizeof(fos_ret_val_t), thr_id);
 }
 
 
@@ -1197,118 +1185,6 @@ static void Private_Kernel_FOS_StartThreadWithArgs()
 		ep_wa(arg_ptr, arg_len);
 }
 
-
-
-
-
-
-/*
- * Пока не пригодилось
- */
-
-// получить id текущего потока
-/*uint8_t USER_FOS_GetCurrentThreadId()
-{
-	return FOS_GetCurrentThreadId(&fos);
-}*/
-
-
-// получить дескриптор текущего потока
-/*fos_thread_t* USER_FOS_GetCurrentThreadDesc()
-{
-	return FOS_GetThreadDesc(&fos, FOS_GetCurrentThreadId(&fos));
-}*/
-
-
-// получить id потока по его дескриптору
-/*uint8_t USER_FOS_GetThreadId(fos_thread_t *thr)
-{
-	return FOS_GetThreadId(&fos, thr);
-}*/
-
-
-// получение дескриптора потока по id
-/*fos_thread_t* USER_FOS_GetThreadDesc(uint8_t id)
-{
-	return FOS_GetThreadDesc(&fos, id);
-}*/
-
-
-// уступить другому потоку
-/*void USER_FOS_Yield()
-{
-	FOS_Yield();
-}*/
-
-
-// успыпить поток с id
-/*fos_ret_t USER_FOS_SleepId(uint8_t id, uint32_t time)
-{
-	return FOS_SleepId(&fos, id, time);
-}*/
-
-
-// усыпить поток с дескриптором
-/*fos_ret_t USER_FOS_SleepDesc(fos_thread_ptr desc, uint32_t time)
-{
-	return FOS_SleepId(&fos, FOS_GetThreadId(&fos, desc), time);
-}*/
-
-
-// запустить поток с id
-/*fos_ret_t USER_FOS_RunId(uint8_t id)
-{
-	return FOS_RunId(&fos, id);
-}*/
-
-
-// разбудить поток с id
-/*fos_ret_t USER_FOS_WeakUpId(uint8_t id)
-{
-	return FOS_WeakUpId(&fos, id);
-}*/
-
-
-// разбудить поток с дескриптором
-/*fos_ret_t USER_FOS_WeakUpDesc(fos_thread_ptr desc)
-{
-	return FOS_WeakUpId(&fos, FOS_GetThreadId(&fos, desc));
-}*/
-
-
-// установить блокировку на поток с id
-/*fos_ret_t USER_FOS_LockId(uint8_t id, uint32_t lock)
-{
-	return FOS_LockId(&fos, id, lock & FOS_USER_LOCK_MASK);
-}*/
-
-
-// установить блокировку на поток с дескриптором
-/*fos_ret_t USER_FOS_LockDesc(fos_thread_ptr desc, uint32_t lock)
-{
-	return FOS_LockId(&fos, FOS_GetThreadId(&fos, desc), lock & FOS_USER_LOCK_MASK);
-}*/
-
-
-// установить блокировку на текущий поток
-/*fos_ret_t USER_FOS_Lock(uint32_t lock)
-{
-	return FOS_Lock(&fos, lock & FOS_USER_LOCK_MASK);
-}*/
-
-
-// снять блокировку с потока с id
-/*fos_ret_t USER_FOS_UnlockId(uint8_t id, uint32_t lock)
-{
-	return FOS_UnlockId(&fos, id, lock & FOS_USER_LOCK_MASK);
-}*/
-
-
-// снять блокировку с потока с дескриптором
-/*fos_ret_t USER_FOS_UnlockDesc(fos_thread_ptr desc, uint32_t lock)
-{
-	return FOS_UnlockId(&fos, FOS_GetThreadId(&fos, desc), lock & FOS_USER_LOCK_MASK);
-}*/
 
 
 

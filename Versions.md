@@ -1,5 +1,34 @@
 # FOS versions
 
+## FOS v1.0.7 build 10 08.05.2026 api-1.1
+
+* User descriptor includes more information
+* User descriptor is logged in HEX number format
+* Some optimization is done
+* Some code refactror is done
+* Added context cheching while calling API function
+* Timeout mechanical is improved
+* API is changed:
+1. Next function are deprecated because timeout mechanism has been changed
+1.1. `API_FOS_SemBinarySetTimeout`
+1.2. `API_FOS_SemCntSetTimeout`
+2. Timeout is added to argument into below functions
+2.1. `API_FOS_SemBinaryTake`
+2.2. `API_FOS_SemCntTake`
+2.3 `API_FOS_MutexTake`
+2.4. `API_FOS_Queue32ReadData`
+2.5. `API_FOS_Join`
+3. Arguments of the functions below are changed
+3.1. `API_FOS_CreateMutex`
+3.2. `API_FOS_CreateQueue32`
+4. Next function are deprecated because context watch is added
+4.1. `API_FOS_SemBinaryGiveFromISR`
+4.2. `API_FOS_SemCntGiveFromISR`
+4.3. `API_FOS_Queue32WriteDataFromISR`
+4.4. `API_FOS_SentNoteToThreadFromISR`
+4.5. `API_FOS_LogDataFromISR`
+5. In `API_FOS_Yield` adde returned status.
+
 ## FOS v1.0.6 build 08 28.04.2026 api-1
 
 * Added the thread function with arguments

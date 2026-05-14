@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.c
  * @brief     API of OS for queue32. Source file.
- * @version   V1.0.02
- * @date      23.01.2026
+ * @version   V1.0.04
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -23,6 +23,7 @@
 
 
 #include "Data/fos_queue32.h"
+#include <string.h>
 
 
 // initialization
@@ -31,6 +32,7 @@ fos_ret_t FOS_Queue32_Init(fos_queue32_t* p, uint32_t* buf_ptr, uint16_t buf_siz
 	if((p == NULL) || (buf_ptr == NULL))
 		return FOS__FAIL;
 
+	memset(p, 0, sizeof(fos_queue32_t));
 	msg32_ret_t ret = Msg32_Initialize(&p->msg, buf_ptr, buf_size);
 	if(ret != MSG32__OK)
 		return FOS__FAIL;
@@ -87,13 +89,13 @@ fos_ret_t FOS_Queue32_WriteData(fos_queue32_t* p, uint32_t data)
 
 // ask data
 // if thr_id == FOS_SPECIAL_ID semafore is taken but thread is not blocked
-fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id)
+fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout_ms)
 {
 	if(p == NULL)
 		return FOS__FAIL;
 
 	if(p->semc_ptr)
-		return FOS_SemaphoreCnt_Take(p->semc_ptr, thr_id);
+		return FOS_SemaphoreCnt_Take(p->semc_ptr, thr_id, timeout_ms);
 
 	return FOS__OK;
 }

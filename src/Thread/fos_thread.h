@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.2.03
- * @date      10.04.2026
+ * @version   V1.3.00
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -53,6 +53,7 @@ typedef struct
 	volatile uint32_t sp;                // текущий указатель стека
 	volatile uint32_t wake_up_time;      // время пробуждения потока (из соятояния BLOCKED в READY)
 	volatile uint32_t lock_flag;         // флаг блокировки потока
+	volatile user_desc_t lock_obj_ud;    // user descriptor of blocking object
 	volatile int32_t  terminate_code;    // код завершения потока
 	volatile user_desc_t parent;         // дескриптор родидельского потока
 	volatile fos_thread_state_t state;   // состояние потока
@@ -62,6 +63,7 @@ typedef struct
 	volatile uint8_t* arg_ptr;           // argmunt pointer in the local thread heap
 	volatile uint32_t arg_len;           // argument len
 	volatile fos_thr_note_t* note_ptr;   // thread note pointer
+	volatile fos_ret_val_t* ret_val_ptr; // returned value poiner
 	volatile fos_sw_t signal_sw;         // thread is waiting for the note to wake up
 
 } fos_thread_var_t;
@@ -102,11 +104,8 @@ fos_ret_t FOS_Thread_SetTerminateFlag(fos_thread_t *p, int32_t terminate_code);
 // усыпить поток
 void FOS_ThreadSleep(fos_thread_t *p, uint32_t time, fos_sw_t signal_sw);
 
-// разбудить поток
-void FOS_ThreadWeakUp(fos_thread_t *p);
-
 // установить блокировку на поток
-void FOS_ThreadLock(fos_thread_t *p, uint32_t lock);
+void FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms);
 
 // снять блокировку с потока
 void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock);
@@ -143,6 +142,12 @@ fos_thr_note_t* FOS_Thread_GetNotePtr(fos_thread_t *p);
 
 // get ep_wa
 uint32_t FOS_Thread_GetEpA(fos_thread_t *p);
+
+// add returned value pointer
+fos_ret_t FOS_Thread_AddRValPtr(fos_thread_t *p, fos_ret_val_t *ret_val_ptr);
+
+// get returned value pointer
+fos_ret_val_t* FOS_Thread_GetRValPtr(fos_thread_t *p);
 
 
 

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.c
  * @brief     Gates for system call handling. Source file.
- * @version   V1.2.11
- * @date      08.04.2026
+ * @version   V1.2.15
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -54,8 +54,6 @@ static void GATE_File_Mount(void* data);
 
 static void GATE_File_Unmount(void* data);
 
-static void GATE_FOS_SemBinarySetTimeout(void* data);
-
 static void GATE_FOS_SemCntTake(void* data);
 
 static void GATE_FOS_SemCntGive(void* data);
@@ -63,8 +61,6 @@ static void GATE_FOS_SemCntGive(void* data);
 static void GATE_FOS_CreateSemCnt(void* data);
 
 static void GATE_FOS_DeleteSemCnt(void* data);
-
-static void GATE_FOS_SemCntSetTimeout(void* data);
 
 static void GATE_FOS_CreateQueue32(void* data);
 
@@ -76,10 +72,6 @@ static void GATE_FOS_ReadDataQueue32(void* data);
 
 static void GATE_FOS_WriteDataQueue32(void* data);
 
-static void GATE_FOS_SemBinaryTakeStat(void* data);
-
-static void GATE_FOS_SemCntTakeStat(void* data);
-
 static void GATE_FOS_IsThreadAlive(void* data);
 
 static void GATE_FOS_GetCurrentThreadUd(void* data);
@@ -90,7 +82,7 @@ static void GATE_FOS_DeleteMutex(void* data);
 
 static void GATE_FOS_MutexTake(void* data);
 
-static void GATE_FOS_MutexSetOwnerAndTakeStat(void* data);
+static void GATE_FOS_MutexSetOwner(void* data);
 
 static void GATE_FOS_MutexGive(void* data);
 
@@ -140,25 +132,21 @@ void GATE_FOS_Init()
 	system_reg_call(GATE_FOS_GetThreadEpA, FOS_SYSCALL_FOS_THREAD_GET_EP_WA);
 
 	system_reg_call(GATE_FOS_CreateSemBinary, FOS_SYSCALL_FOS_CREATE_SEMB);
-	system_reg_call(GATE_FOS_SemBinarySetTimeout, FOS_SYSCALL_FOS_SEMB_SET_TIMEOUT);
 	system_reg_call(GATE_FOS_DeleteSemBinary, FOS_SYSCALL_FOS_DELETE_SEMB);
 	system_reg_call(GATE_FOS_SemBinaryTake, FOS_SYSCALL_FOS_SEMB_TAKE);
 	system_reg_call(GATE_FOS_SemBinaryGive, FOS_SYSCALL_FOS_SEMB_GIVE);
-	system_reg_call(GATE_FOS_SemBinaryTakeStat, FOS_SYSCALL_FOS_SEMB_TAKE_STAT);
 
 	system_reg_call(GATE_FOS_GetCurrentThreadUd, FOS_SYSCALL_FOS_GET_CURRENT_THR_UD);
 
 	system_reg_call(GATE_FOS_CreateSemCnt, FOS_SYSCALL_FOS_CREATE_SEMC);
-	system_reg_call(GATE_FOS_SemCntSetTimeout, FOS_SYSCALL_FOS_SEMC_SET_TIMEOUT);
 	system_reg_call(GATE_FOS_DeleteSemCnt, FOS_SYSCALL_FOS_DELETE_SEMC);
 	system_reg_call(GATE_FOS_SemCntTake, FOS_SYSCALL_FOS_SEMC_TAKE);
 	system_reg_call(GATE_FOS_SemCntGive, FOS_SYSCALL_FOS_SEMC_GIVE);
-	system_reg_call(GATE_FOS_SemCntTakeStat, FOS_SYSCALL_FOS_SEMC_TAKE_STAT);
 
 	system_reg_call(GATE_FOS_CreateMutex, FOS_SYSCALL_FOS_CREATE_MUTEX);
 	system_reg_call(GATE_FOS_DeleteMutex, FOS_SYSCALL_FOS_DELETE_MUTEX);
 	system_reg_call(GATE_FOS_MutexTake, FOS_SYSCALL_FOS_MUTEX_TAKE);
-	system_reg_call(GATE_FOS_MutexSetOwnerAndTakeStat, FOS_SYSCALL_FOS_MUTEX_SO_TAKE_STAT);
+	system_reg_call(GATE_FOS_MutexSetOwner, FOS_SYSCALL_FOS_MUTEX_SET_OWNER);
 	system_reg_call(GATE_FOS_MutexGive, FOS_SYSCALL_FOS_MUTEX_GIVE);
 
 	system_reg_call(GATE_FOS_CreateQueue32, FOS_SYSCALL_FOS_QUEUE_32_CREATE);
@@ -177,7 +165,8 @@ void GATE_FOS_Init()
 
 static void GATE_FOS_Yield(void* data)
 {
-	FOS_Yield();
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)FOS_Yield();
 }
 
 
@@ -185,13 +174,15 @@ static void GATE_FOS_Sleep(void* data)
 {
 	uint32_t *buf_ptr = data;
 	buf_ptr[0] = (uint32_t)Kernel_FOS_Sleep(buf_ptr[1], (fos_sw_t)buf_ptr[2]);
+	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadNotePtr();
 }
 
 
 static void GATE_FOS_SemBinaryTake(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemBinaryTake((user_desc_t)buf_ptr[1]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_SemBinaryTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
+	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
@@ -272,17 +263,11 @@ static void GATE_File_Unmount(void* data)
 }
 
 
-static void GATE_FOS_SemBinarySetTimeout(void* data)
-{
-	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemBinarySetTimeout((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-}
-
-
 static void GATE_FOS_SemCntTake(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntTake((user_desc_t)buf_ptr[1]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
+	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
@@ -307,17 +292,10 @@ static void GATE_FOS_DeleteSemCnt(void* data)
 }
 
 
-static void GATE_FOS_SemCntSetTimeout(void* data)
-{
-	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntSetTimeout((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-}
-
-
 static void GATE_FOS_CreateQueue32(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateQueue32((uint16_t)buf_ptr[1], (fos_queue_mode_t)buf_ptr[2], (uint32_t)buf_ptr[3]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateQueue32((uint16_t)buf_ptr[1], (fos_queue_mode_t)buf_ptr[2]);
 }
 
 
@@ -331,7 +309,8 @@ static void GATE_FOS_DeleteQueue32(void* data)
 static void GATE_FOS_AskDataQueue32(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32AskData((user_desc_t)buf_ptr[1], (fos_queue_sw_t)buf_ptr[2]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32AskData((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
+	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
@@ -346,20 +325,6 @@ static void GATE_FOS_WriteDataQueue32(void* data)
 {
 	uint32_t *buf_ptr = data;
 	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32WriteData((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-}
-
-
-static void GATE_FOS_SemBinaryTakeStat(void* data)
-{
-	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemBinaryTakeStat((user_desc_t)buf_ptr[1]);
-}
-
-
-static void GATE_FOS_SemCntTakeStat(void* data)
-{
-	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntTakeStat((user_desc_t)buf_ptr[1]);
 }
 
 
@@ -380,9 +345,9 @@ static void GATE_FOS_GetCurrentThreadUd(void* data)
 static void GATE_FOS_CreateMutex(void* data)
 {
 	uint32_t *buf_ptr = data;
-	fos_mutex_type_t type = (fos_mutex_type_t)((buf_ptr[2]) & 0xFF);
-	uint8_t pcp_priority = (uint8_t)((buf_ptr[2] >> 8) & 0xFF);
-	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateMutex((uint32_t)buf_ptr[1], type, pcp_priority);
+	fos_mutex_type_t type = (fos_mutex_type_t)((buf_ptr[1]) & 0xFF);
+	uint8_t pcp_priority = (uint8_t)((buf_ptr[1] >> 8) & 0xFF);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateMutex(type, pcp_priority);
 }
 
 
@@ -396,14 +361,15 @@ static void GATE_FOS_DeleteMutex(void* data)
 static void GATE_FOS_MutexTake(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_MutexTake((user_desc_t)buf_ptr[1]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_MutexTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
+	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
-static void GATE_FOS_MutexSetOwnerAndTakeStat(void* data)
+static void GATE_FOS_MutexSetOwner(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_MutexSetOwnerAndTakeStat((user_desc_t)buf_ptr[1]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_MutexSetOwner((user_desc_t)buf_ptr[1]);
 }
 
 

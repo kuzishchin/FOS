@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.h
  * @brief     Gates for system call handling. Header file.
- * @version   V1.2.11
- * @date      08.04.2026
+ * @version   V1.2.15
+ * @date      05.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_mutex.c
  * @brief     Mutex. Source file.
- * @version   V1.0.02
- * @date      27.04.2026
+ * @version   V1.1.02
+ * @date      08.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -104,13 +104,16 @@ fos_ret_t FOS_Mutex_SetUserDesc(fos_mutex_t *p, user_desc_t user_desc)
 
 
 // взять
-fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id)
+fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms)
 {
 	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
 		return FOS__FAIL;
 
 	if(thr_id == p->owner_thr_id)       // защита от повторного захвата тем же потоком
 		return FOS__FAIL;
+
+//	if(timeout_ms == 0)
+//		return FOS__FAIL;
 /*
 	if(p->owner_thr_id != FOS_WRONG_THREAD_ID)
 	{
@@ -133,7 +136,7 @@ fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id)
 		}
 	}*/
 
-	fos_ret_t ret = FOS_SemaphoreBinary_Take(p->semb_ptr, thr_id);      // берем бинарный семафор
+	fos_ret_t ret = FOS_SemaphoreBinary_Take(p->semb_ptr, thr_id, timeout_ms);      // берем бинарный семафор
 	if(ret != FOS__OK)
 		return ret;
 
@@ -141,9 +144,8 @@ fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id)
 }
 
 
-// установить владельца и получить статус взятия мьютекса
-// FOS__OK - нормальное взятие мьютекса, FOS__FAIL - взятие по таймауту
-fos_ret_t FOS_Mutex_SetOwnerAndTakeStat(fos_mutex_t *p, uint8_t thr_id)
+// установить владельца
+fos_ret_t FOS_Mutex_SetOwner(fos_mutex_t *p, uint8_t thr_id)
 {
 	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
 		return FOS__FAIL;
@@ -157,7 +159,7 @@ fos_ret_t FOS_Mutex_SetOwnerAndTakeStat(fos_mutex_t *p, uint8_t thr_id)
 		FOS_Mutex_ResetThreadPriority(p->owner_thr_id);*/
 
 	p->owner_thr_id = thr_id;                               // устанавливаем нового владельца
-	return FOS_SemaphoreBinary_TakeStat(p->semb_ptr);       // возвращаем признак таймаута
+	return FOS__OK;
 }
 
 

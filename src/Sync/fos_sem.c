@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.c
  * @brief     Counting named strong semaphore. Source file.
- * @version   V1.1.05
- * @date      10.04.2026
+ * @version   V1.2.02
+ * @date      08.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,16 +27,6 @@
 #include <string.h>
 
 
-// заглушка на логирование событий
-// реализация через функцию ядра
-// defined in the fos_kernel.c
-__weak fos_ret_t FOS_LogSysData(char *str1, char *str2, uint32_t val, fos_log_type_t type)
-{
-	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
-	return FOS__FAIL;
-}
-
-
 // инициализация
 void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t init_cnt)
 {
@@ -46,6 +36,7 @@ void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t in
 	if(init_cnt > max_cnt)
 		init_cnt = max_cnt;
 
+	memset(p, 0, sizeof(fos_semaphore_cnt_t));
 	p->max_cnt = max_cnt;
 	p->cnt = init_cnt;
 	FOS_Lock_Init(&p->fos_lock);
@@ -59,6 +50,7 @@ fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_
 		return FOS__FAIL;
 
 	p->user_desc = user_desc;
+	FOS_Lock_SetOwnerUd(&p->fos_lock, user_desc);
 
 	return FOS__OK;
 }
@@ -66,7 +58,7 @@ fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_
 
 // взять
 // поток с FOS_SPECIAL_ID уменьшает счётчик но не блоирует
-fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id)
+fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms)
 {
 	if(p == NULL)
 		return FOS__FAIL;
@@ -80,24 +72,10 @@ fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id)
 	}else               // если счётчик пуст
 	{
 		if(thr_id != FOS_SPECIAL_ID)
-			return FOS_Lock_Take(&p->fos_lock, thr_id);    // блокируем поток его берущий
+			return FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);    // блокируем поток его берущий
 	}
 
 	return FOS__OK;
-}
-
-
-// получить статус взятия семафора
-// FOS__OK - нормальное взятие семафора, FOS__FAIL - взятие по таймауту
-fos_ret_t FOS_SemaphoreCnt_TakeStat(fos_semaphore_cnt_t *p)
-{
-    if(p == NULL)
-        return FOS__FAIL;
-
-    if(p->timeout.timeout_flag)      // индикация что был таймаут
-        return FOS__FAIL;
-
-    return FOS__OK;
 }
 
 
@@ -117,7 +95,7 @@ fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p)
 	}else               // если счётчик пуст
 	{
 		if(FOS_Lock_GetLockedThreadsCount(&p->fos_lock))    // если есть заблокированные потоки
-			ret = FOS_Lock_Give(&p->fos_lock, FOS__DISABLE);// разблокируем очередной поток и выходим
+			ret = FOS_Lock_Give(&p->fos_lock);              // разблокируем очередной поток и выходим
 		else
 			p->cnt = 1;                                     // если заблокированных полтокв нет, ставим счётчик в 1
 	}
@@ -125,59 +103,9 @@ fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p)
 	if(p->cnt > p->max_cnt)                                 // ограничиваем счёт
 		p->cnt = p->max_cnt;
 
-    p->timeout.timeout_flag  = FOS__DISABLE;                              // снимаем флаг таймату по выдаче
-    p->timeout.timeout_ts_ms = SL_GetTick() + p->timeout.timeout_ms;      // обновляем метку времени наступления таймаута
-
 	LEAVE_CRITICAL(s);
 
 	return ret;
-}
-
-
-// обработка таймаута
-static fos_ret_t FOS_SemaphoreCnt_ProcTimeout(fos_semaphore_cnt_t *p)
-{
-	if(p == NULL)
-		return FOS__FAIL;
-
-	fos_ret_t ret = FOS__OK;
-	uint32_t s;
-
-	if(p->timeout.timeout_ms)                               // если таймауты включены
-	{
-		if(FOS_Lock_GetLockedThreadsCount(&p->fos_lock))    // если есть заблокированные потоки
-		{
-			if(SL_GetTick() >= p->timeout.timeout_ts_ms)
-			{
-#if FOS_DEBUL_LEVEL >= 2
-				FOS_LogSysData("Semc is timeout.", "Semc with", p->user_desc, FOS_LOG_TYPE__WARNING); // 16+9+10+6=41 symbols
-#endif
-
-				p->timeout.timeout_ts_ms = SL_GetTick() + p->timeout.timeout_ms;
-
-				ENTER_CRITICAL(s);
-                p->timeout.timeout_flag = FOS__ENABLE;           // поднимаем флаг таймаута
-				ret = FOS_Lock_Give(&p->fos_lock, FOS__ENABLE);  // разблокируем очередной поток и выходим
-				LEAVE_CRITICAL(s);
-			}
-
-		}else{
-			p->timeout.timeout_ts_ms = SL_GetTick() + p->timeout.timeout_ms;
-		}
-	}
-
-	return ret;
-}
-
-
-// обработка таймаута всех семафоров
-void FOS_AllSemaphoreCnt_ProcTimeout(volatile fos_semaphore_cnt_ptr *sem_desc_list, uint8_t sem_max_ind)
-{
-	if((sem_desc_list == NULL) || (sem_max_ind >= FOS_SEM_COUNTING_CNT))
-		return;
-
-	for(uint8_t i = 0; i <= sem_max_ind; i++)
-		FOS_SemaphoreCnt_ProcTimeout(sem_desc_list[i]);
 }
 
 
@@ -199,27 +127,10 @@ fos_ret_t FOS_SemaphoreCnt_UnlockAll(fos_semaphore_cnt_t *p)
 
 	// разблокируем все заблокированные потоки
 	while(FOS_Lock_GetLockedThreadsCount(&p->fos_lock))
-		FOS_Lock_Give(&p->fos_lock, FOS__DISABLE);
+		FOS_Lock_Give(&p->fos_lock);
 
 	return FOS__OK;
 }
-
-
-// установить таймаут
-fos_ret_t FOS_SemaphoreCnt_SetTimeout(fos_semaphore_cnt_t *p, uint32_t timeout_ms)
-{
-	if(p == NULL)
-		return FOS__FAIL;
-
-	if(timeout_ms == FOS_INF_TIME)
-		timeout_ms = 0;
-
-	p->timeout.timeout_ms = timeout_ms;
-
-	return FOS__OK;
-}
-
-
 
 
 

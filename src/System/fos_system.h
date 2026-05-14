@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.2.11
- * @date      08.04.2026
+ * @version   V1.4.03
+ * @date      06.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -29,13 +29,10 @@
 
 
 // уступить другому процессу
-void SYS_FOS_Yield();
+fos_ret_t SYS_FOS_Yield();
 
-// взять бинарный светофор
-fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb);
-
-// статус взятия бинарного семафор
-fos_ret_t SYS_FOS_SemBinaryTakeStat(user_desc_t semb);
+// взять бинарный семафор
+fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms);
 
 // дать бинарный свнтофор
 fos_ret_t SYS_FOS_SemBinaryGive(user_desc_t semb);
@@ -59,22 +56,16 @@ fos_ret_t SYS_FOS_RunDesc(user_desc_t desc);
 fos_ret_t SYS_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code);
 
 // вызвать Hard Fault
-void SYS_FOS_HardFaultCall();
+fos_ret_t SYS_FOS_HardFaultCall();
 
 // смотнитровать файловую систему
-void SYS_File_Mount(uint8_t dev_num);
+fos_ret_t SYS_File_Mount(uint8_t dev_num);
 
 // размонтировать файловую систему
-void SYS_File_Unmount(uint8_t dev_num);
-
-// set binary semaphore timeout
-fos_ret_t SYS_FOS_SemBinarySetTimeout(user_desc_t semb, uint32_t timeout_ms);
+fos_ret_t SYS_File_Unmount(uint8_t dev_num);
 
 // взять счётный семафор
-fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc);
-
-// статус взятия счётного семафора
-fos_ret_t SYS_FOS_SemCntTakeStat(user_desc_t semc);
+fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms);
 
 // дать счётный семафор
 fos_ret_t SYS_FOS_SemCntGive(user_desc_t semc);
@@ -85,17 +76,14 @@ user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
 // удалить счётный семафор
 fos_ret_t SYS_FOS_DeleteSemCnt(user_desc_t semc);
 
-// set counting semaphore timeout
-fos_ret_t SYS_FOS_SemCntSetTimeout(user_desc_t semc, uint32_t timeout_ms);
-
 // create queue32
-user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t timeout_ms);
+user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode);
 
 // delete queue32
 fos_ret_t SYS_FOS_DeleteQueue32(user_desc_t que);
 
 // ask data from queue32
-fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, fos_queue_sw_t blocking_mode_sw);
+fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms);
 
 // read data from queue32
 // one must ask data before read every times
@@ -118,7 +106,7 @@ fos_ret_t SYS_FOS_Sleep(uint32_t time);
 // зафиксировать ошибку
 // используется в слабом подтягивании
 // used via weak callback in the fos_kernel.c, fos_heap.c, fos_thread.c
-void SYS_FOS_ErrorSet(fos_err_t *err);
+fos_ret_t SYS_FOS_ErrorSet(fos_err_t *err);
 
 // завершить текущий поток
 // используется в слабом подтягивании
@@ -148,17 +136,16 @@ user_thread_ep_wa_t SYS_FOS_GetThreadEpA();
 user_desc_t SYS_FOS_GetCurrentThreadUd();
 
 // create the mutex
-user_desc_t SYS_FOS_CreateMutex(uint32_t timeout_ms, fos_mutex_type_t type, uint8_t pcp_priority);
+user_desc_t SYS_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority);
 
 // delete the mutex
 fos_ret_t SYS_FOS_DeleteMutex(user_desc_t mutex);
 
 // take the mutex with picked descriptor
-fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex);
+fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms);
 
-// get taking status of the mutex and set owner
-// FOS__OK - normal taking, FOS__FAIL - taking with timeout
-fos_ret_t SYS_FOS_MutexSetOwnerAndTakeStat(user_desc_t mutex);
+// set owner
+fos_ret_t SYS_FOS_MutexSetOwner(user_desc_t mutex);
 
 // release mutex
 fos_ret_t SYS_FOS_MutexGive(user_desc_t mutex);

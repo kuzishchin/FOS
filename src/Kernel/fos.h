@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.5.09
- * @date      10.04.2026
+ * @version   V1.6.05
+ * @date      08.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -101,14 +101,11 @@ void FOS_Init(fos_t *p);
 // OS startup
 fos_ret_t FOS_Start(fos_t *p);
 
+// main loop handler
+void FOS_MainLoopProc(fos_t *p);
+
 // get thread identifier by user defined descriptor
-uint8_t FOS_GetUdThreadId(fos_t *p, user_desc_t user_desc);
-
-// get thread user descriptor by thread ID
-user_desc_t FOS_GetUdThreadById(fos_t *p, uint8_t id);
-
-// get semaphore binary user descriptor by thread ID
-user_desc_t FOS_GetThreadSembId(fos_t *p, uint8_t id);
+uint8_t FOS_GetThreadIdByUd(fos_t *p, user_desc_t user_desc);
 
 // thread registration
 fos_ret_t FOS_ThreadReg(fos_t *p, fos_thread_t *thr, uint8_t *id_ptr);
@@ -119,32 +116,56 @@ fos_ret_t FOS_RunId(fos_t *p, uint8_t id);
 // start thread with identifier and with arg
 fos_ret_t FOS_RunIdWithArg(fos_t *p, uint8_t id, uint8_t* arg_ptr, uint32_t arg_len);
 
-// get thread arg pointer
-uint8_t* FOS_GetThreadArgPtr(fos_t *p);
-
-// get thread arg len
-uint32_t FOS_GetThreadArgLen(fos_t *p);
-
 // terminate thread with identifier
 fos_ret_t FOS_TerminateId(fos_t *p, uint8_t id, int32_t terminate_code);
 
 // terminate current thread
 fos_ret_t FOS_Terminate(fos_t *p, int32_t terminate_code);
 
-// yield to another process
-void FOS_Yield();
+// get thread arg pointer
+uint8_t* FOS_GetThreadArgPtr(fos_t *p);
 
-//send thread with identifier to sleep
-//fos_ret_t FOS_SleepId(fos_t *p, uint8_t id, uint32_t time);
+// get thread arg len
+uint32_t FOS_GetThreadArgLen(fos_t *p);
+
+// set note to thread by id
+fos_ret_t FOS_SetNoteId(fos_t *p, uint8_t id, fos_note_type_t type, uint32_t note);
+
+// get thread note pointer
+fos_thr_note_t* FOS_GetThreadNotePtr(fos_t *p);
+
+// get ep_wa
+uint32_t FOS_GetThreadEpA(fos_t *p);
+
+// get returned values from the thread
+fos_ret_val_t* FOS_GetThreadRValPtr(fos_t *p);
+
+// get id of current thread
+uint8_t FOS_GetCurrentThreadId(fos_t *p);
+
+// get user descriptor of parent thread
+user_desc_t FOS_GetThreadParentUd(fos_t *p);
+
+// is thread run
+fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc);
+
+// get semaphore binary user descriptor by thread ID
+user_desc_t FOS_GetThreadSembId(fos_t *p, uint8_t id);
+
+// get thread user descriptor by thread ID
+user_desc_t FOS_GetUdThreadById(fos_t *p, uint8_t id);
 
 // send current thread to sleep
 fos_ret_t FOS_Sleep(fos_t *p, uint32_t time, fos_sw_t is_waiting);
 
 // set blocking to thread with identifier
-fos_ret_t FOS_LockId(fos_t *p, uint8_t id, uint32_t lock);
+fos_ret_t FOS_LockId(fos_t *p, uint8_t id, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms);
 
 // unblock thread with identifier
 fos_ret_t FOS_UnlockId(fos_t *p, uint8_t id, uint32_t lock);
+
+// yield to another process
+fos_ret_t FOS_Yield();
 
 // register binary semaphore
 fos_ret_t FOS_SemBinaryReg(fos_t *p, fos_semaphore_binary_t *semb);
@@ -153,26 +174,10 @@ fos_ret_t FOS_SemBinaryReg(fos_t *p, fos_semaphore_binary_t *semb);
 fos_ret_t FOS_SemBinaryDelete(fos_t *p, user_desc_t semb);
 
 // acquire binary semaphore
-fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb);
-
-// get taking status of binary semaphore
-// FOS__OK - normal taking, FOS__FAIL - taking with timeout
-fos_ret_t FOS_SemBinaryTakeStat(fos_t *p, user_desc_t semb);
+fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb, uint32_t timeout_ms);
 
 // release binary semaphore
 fos_ret_t FOS_SemBinaryGive(fos_t *p, user_desc_t semb);
-
-// set binary semaphore timeout
-fos_ret_t FOS_SemBinarySetTimeout(fos_t *p, user_desc_t semb, uint32_t timeout_ms);
-
-// get writer object descriptor by its identifier
-fwriter_t* FOS_GetFWriterDesc(fos_t *p, uint8_t id);
-
-// register writer object
-fos_ret_t FOS_FWriterReg(fos_t *p, fwriter_t *fw);
-
-// identify error
-void FOS_ErrorSet(fos_t *p, fos_err_t *err);
 
 // register counting semaphore
 fos_ret_t FOS_SemCntReg(fos_t *p, fos_semaphore_cnt_t *semc);
@@ -181,16 +186,10 @@ fos_ret_t FOS_SemCntReg(fos_t *p, fos_semaphore_cnt_t *semc);
 fos_ret_t FOS_SemCntDelete(fos_t *p, user_desc_t semc);
 
 // acquire counting semaphore
-fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc);
-
-// get status of acquire counting semaphore
-fos_ret_t FOS_SemCntTakeStat(fos_t *p, user_desc_t semc);
+fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms);
 
 // release counting semaphore
 fos_ret_t FOS_SemCntGive(fos_t *p, user_desc_t semc);
-
-// set counting semaphore timeout
-fos_ret_t FOS_SemCntSetTimeout(fos_t *p, user_desc_t semc, uint32_t timeout_ms);
 
 // register queue32
 fos_ret_t FOS_Queue32Reg(fos_t *p, fos_queue32_t *que);
@@ -202,7 +201,7 @@ fos_ret_t FOS_Queue32JoinToSemCnt(fos_t *p, fos_queue32_t *que, user_desc_t semc
 fos_ret_t FOS_Queue32Delete(fos_t *p, user_desc_t que);
 
 // ask data
-fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, fos_queue_sw_t blocking_mode_sw);
+fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, uint32_t timeout_ms);
 
 // read data
 // one must ask data before read every times
@@ -210,12 +209,6 @@ fos_ret_t FOS_Queue32ReadData(fos_t *p, user_desc_t que, uint32_t* data_ptr);
 
 // write data
 fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data);
-
-// is thread run
-fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc);
-
-// get user descriptor of parent thread
-user_desc_t FOS_GetThreadParentUd(fos_t *p);
 
 // register mutex
 fos_ret_t FOS_MutexReg(fos_t *p, fos_mutex_t *mut);
@@ -227,32 +220,22 @@ fos_ret_t FOS_MutexJoinToSemBinary(fos_t *p, fos_mutex_t *mut, user_desc_t semb)
 fos_ret_t FOS_MutexDelete(fos_t *p, user_desc_t mutex);
 
 // acquire mutex
-fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex);
+fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex, uint32_t timeout_ms);
 
-// get taking status of the mutex and set owner
-// FOS__OK - normal taking, FOS__FAIL - taking with timeout
-fos_ret_t FOS_MutexSetOwnerAndTakeStat(fos_t *p, user_desc_t mutex);
+// set owner
+fos_ret_t FOS_MutexSetOwner(fos_t *p, user_desc_t mutex);
 
 // release mutex
 fos_ret_t FOS_MutexGive(fos_t *p, user_desc_t mutex);
 
-// get id of current thread
-uint8_t FOS_GetCurrentThreadId(fos_t *p);
+// get writer object descriptor by its identifier
+fwriter_t* FOS_GetFWriterDesc(fos_t *p, uint8_t id);
 
-// set note to thread by id
-fos_ret_t FOS_SetNoteId(fos_t *p, uint8_t id, fos_note_type_t type, uint32_t note);
+// register writer object
+fos_ret_t FOS_FWriterReg(fos_t *p, fwriter_t *fw);
 
-// get thread note pointer
-fos_thr_note_t* FOS_GetThreadNotePtr(fos_t *p);
-
-// get ep_wa
-uint32_t FOS_GetThreadEpA(fos_t *p);
-
-// get the system stack debug info
-fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p);
-
-// get the scheduler debug info
-fos_scheduler_dbg_t* FOS_GetSchedulerDbgInfo(fos_t *p);
+// identify error
+void FOS_ErrorSet(fos_t *p, fos_err_t *err);
 
 // write in thread safe mode
 fos_ret_t FOS_LogData(fos_t* p, char *str, fos_log_src_t src, fos_log_type_t type);
@@ -260,22 +243,14 @@ fos_ret_t FOS_LogData(fos_t* p, char *str, fos_log_src_t src, fos_log_type_t typ
 // read index
 fos_ret_t FOS_LogRead(fos_t* p, fos_log_node_t* node_ptr);
 
-// main loop handler
-void FOS_MainLoopProc(fos_t *p);
+// get the system stack debug info
+fos_thread_dbg_t* FOS_GetSysStackDbgInfo(fos_t *p);
 
+// get the scheduler debug info
+fos_scheduler_dbg_t* FOS_GetSchedulerDbgInfo(fos_t *p);
 
-/*
- * Currently not used
- */
-
-// get id of current thread
-//uint8_t FOS_GetCurrentThreadId(fos_t *p);
-
-// wake up thread
-//fos_ret_t FOS_WeakUpId(fos_t *p, uint8_t id);
-
-// block current thread
-//fos_ret_t FOS_Lock(fos_t *p, uint32_t lock);
+// unlink thread from the semaphore
+fos_ret_t FOS_UnlinkThreadFromSem(fos_t *p, user_desc_t sem, user_desc_t thr_ud);
 
 
 #endif /* APPLICATION_FOS_CORE_FOS_H_ */

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lof.h
  * @brief     Logger. Header file.
- * @version   V1.0.02
- * @date      10.04.2026
+ * @version   V1.0.03
+ * @date      29.04.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

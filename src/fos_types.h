@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.3.15
- * @date      27.04.2026
+ * @version   V1.3.19
+ * @date      06.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -69,6 +69,12 @@
 
 #define FOS_MAX_STR_LOG_LEN    100           // maximum length of log descriptive string
 
+#define FOS_UD_NUM_MASK        0x0000FFFF    // user descriptor num mask
+#define FOS_UD_TYPE_MASK       0xFF000000    // user descriptor type mask
+#define FOS_UD_IND_MASK        0x00FF0000    // use descriptor ind mask
+#define FOS_UD_TYPE_SHIFT      24            // user descriptor type bit shift
+#define FOS_UD_IND_SHIFT       16            // use descriptor ind bit shift
+
 //#define FOS_USE_MPU
 
 
@@ -118,6 +124,7 @@ typedef enum
 } fos_queue_mode_t;
 
 
+/*
 // queue sw
 typedef enum
 {
@@ -125,6 +132,7 @@ typedef enum
 	FOS_QUEUE_SW__BLOCK,              // read data with thread blocking
 
 } fos_queue_sw_t;
+*/
 
 
 // OS work mode
@@ -178,6 +186,19 @@ typedef enum
 } fos_note_type_t;
 
 
+// object types
+typedef enum
+{
+	FOS_OBJ_TYPE__UNKNOWN = 0x00,
+	FOS_OBJ_TYPE__THREAD = 0x01,
+	FOS_OBJ_TYPE__BINARY_SEM = 0x11,
+	FOS_OBJ_TYPE__CNT_SEM = 0x12,
+	FOS_OBJ_TYPE__MUTEX = 0x13,
+	FOS_OBJ_TYPE__QUEUE_32 = 0x21,
+
+} fos_obj_types_t;
+
+
 // user descriptor
 typedef uint32_t user_desc_t;
 
@@ -209,6 +230,15 @@ typedef struct
 } fos_thr_note_t;
 
 
+// ret valuse
+typedef struct
+{
+	fos_sw_t timeout_flag;
+	uint16_t sign;            // sign to check the note (always must be equal FOS_NOTE_SIGN)
+
+} fos_ret_val_t;
+
+
 // description of the constant thread settings
 typedef struct
 {
@@ -227,6 +257,7 @@ typedef struct
 typedef struct
 {
 	volatile uint8_t priority;          // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	volatile fos_sw_t unpriv_sw;        // unprivileged switch
 
 } fos_thread_set_t;
 
@@ -283,27 +314,15 @@ typedef struct
 	volatile uint8_t lock_thr_cnt;                         // blocked threads count
 	volatile uint8_t lock_thr_is_list[FOS_MAX_THR_CNT];    // identifier list of the blocked threads
 
-//	volatile fos_sw_t timeout_flag;                        // timeout flag
-	volatile uint32_t timeout_cnt;                         // timeout counter
+	volatile user_desc_t owner_ud;                         // used defined descriptor of the owner
 
 } fos_lock_t;
-
-
-// timeout struct
-typedef struct
-{
-	volatile fos_sw_t timeout_flag;    // timeout flag
-	volatile uint32_t timeout_ms;      // semaphore timeout in ms
-	volatile uint32_t timeout_ts_ms;   // timestamp of semaphore timeout in ms
-
-} fos_lock_timeout_t;
 
 
 // binary semaphore
 typedef struct
 {
 	volatile fos_semb_state_t state;   // semaphore state
-	fos_lock_timeout_t timeout;        // timeout
 	fos_lock_t  fos_lock;              // blocker object
 	user_desc_t user_desc;             // used defined semaphore descriptor
 
@@ -315,7 +334,6 @@ typedef struct
 {
 	uint32_t max_cnt;                  // max count
 	volatile uint32_t cnt;             // semaphore counter
-	fos_lock_timeout_t timeout;        // timeout
 	fos_lock_t  fos_lock;              // blocker object
 	user_desc_t user_desc;             // used defined semaphore descriptor
 
@@ -396,6 +414,23 @@ typedef struct
 
 
 extern void FOS_INTERNAL_ERROR_OF_THE_CALLBACK(void);
+
+
+// mutex attributes
+typedef struct
+{
+	uint8_t res;     // reserved
+
+} fos_mutex_attr_t;
+
+
+// queue attributes
+typedef struct
+{
+	fos_queue_mode_t mode;
+
+} fos_queue_attr_t;
+
 
 #endif /* APPLICATION_FOS_FOS_TYPES_H_ */
 
