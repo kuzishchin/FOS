@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.4.03
- * @date      06.05.2026
+ * @version   V1.4.07
+ * @date      08.06.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -25,6 +25,7 @@
 #include "System/fos_svcall.h"
 #include "System/fos_svc_id.h"
 
+static fos_ret_t Private_SYS_CheckError(uint32_t *buf);
 
 // prototype of kernel function
 // kernel function is used, not indicated in the header file
@@ -49,6 +50,16 @@ __weak fos_ret_t Kernel_FOS_SemBinaryGive(user_desc_t semb)
 // prototype of kernel function
 // kernel function is used, not indicated in the header file
 // defined in the fos_kernel.c
+__weak fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+// defined in the fos_kernel.c
 __weak fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semb)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
@@ -59,7 +70,37 @@ __weak fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semb)
 // prototype of kernel function
 // kernel function is used, not indicated in the header file
 // defined in the fos_kernel.c
+__weak fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+// defined in the fos_kernel.c
 __weak fos_ret_t Kernel_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+// defined in the fos_kernel.c
+__weak fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+// defined in the fos_kernel.c
+__weak fos_ret_t Kernel_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 	return FOS__FAIL;
@@ -94,31 +135,21 @@ fos_ret_t SYS_FOS_Yield()
 // взять бинарный семафор
 fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms)
 {
-	if(__get_IPSR() != 0)
-		return FOS__FAIL;
-
-	uint32_t buf[4];
+	uint32_t buf[5];
 	buf[1] = (uint32_t)semb;
 	buf[2] = (uint32_t)timeout_ms;
+	buf[3] = (fos_sw_t)FOS__DISABLE;   // the value by default
+
+	if(__get_IPSR() != 0)
+	{
+		if(timeout_ms)
+			return FOS__FAIL;
+		return Kernel_FOS_SemBinaryTake(semb, timeout_ms, (fos_sw_t*)&buf[3]);
+	}
 
 	system_call(FOS_SYSCALL_FOS_SEMB_TAKE, buf);
 
-	fos_ret_t ret = (fos_ret_t)buf[0];
-	if(ret != FOS__OK)
-		return FOS__FAIL;
-
-	if(timeout_ms == 0)
-		return FOS__OK;
-
-	fos_ret_val_t* rv_ptr = (fos_ret_val_t*)buf[3];
-	if(rv_ptr == NULL)
-		return FOS__FAIL;
-	if(rv_ptr->sign != FOS_NOTE_SIGN)
-		return FOS__FAIL;
-
-	if(rv_ptr->timeout_flag == FOS__DISABLE)
-		return FOS__OK;
-	return FOS__FAIL;
+	return Private_SYS_CheckError(buf);
 }
 
 
@@ -273,31 +304,21 @@ fos_ret_t SYS_File_Unmount(uint8_t dev_num)
 // взять счётный семафор
 fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms)
 {
-	if(__get_IPSR() != 0)
-		return FOS__FAIL;
-
-	uint32_t buf[4];
+	uint32_t buf[5];
 	buf[1] = (uint32_t)semc;
 	buf[2] = (uint32_t)timeout_ms;
+	buf[3] = (fos_sw_t)FOS__DISABLE;   // the value by default
+
+	if(__get_IPSR() != 0)
+	{
+		if(timeout_ms)
+			return FOS__FAIL;
+		return Kernel_FOS_SemCntTake(semc, timeout_ms, (fos_sw_t*)&buf[3]);
+	}
 
 	system_call(FOS_SYSCALL_FOS_SEMC_TAKE, buf);
 
-	fos_ret_t ret = (fos_ret_t)buf[0];
-	if(ret != FOS__OK)
-		return FOS__FAIL;
-
-	if(timeout_ms == 0)
-		return FOS__OK;
-
-	fos_ret_val_t* rv_ptr = (fos_ret_val_t*)buf[3];
-	if(rv_ptr == NULL)
-		return FOS__FAIL;
-	if(rv_ptr->sign != FOS_NOTE_SIGN)
-		return FOS__FAIL;
-
-	if(rv_ptr->timeout_flag == FOS__DISABLE)
-		return FOS__OK;
-	return FOS__FAIL;
+	return Private_SYS_CheckError(buf);
 }
 
 
@@ -381,31 +402,21 @@ fos_ret_t SYS_FOS_DeleteQueue32(user_desc_t que)
 // ask data from queue32
 fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms)
 {
-	if(__get_IPSR() != 0)
-		return FOS__FAIL;
-
-	uint32_t buf[4];
+	uint32_t buf[5];
 	buf[1] = (uint32_t)que;
 	buf[2] = (uint32_t)timeout_ms;
+	buf[3] = (fos_sw_t)FOS__DISABLE;   // the value by default
+
+	if(__get_IPSR() != 0)
+	{
+		if(timeout_ms)
+			return FOS__FAIL;
+		return Kernel_FOS_Queue32AskData(que, timeout_ms, (fos_sw_t*)&buf[3]);
+	}
 
 	system_call(FOS_SYSCALL_FOS_QUEUE_32_ASK, buf);
 
-	fos_ret_t ret = (fos_ret_t)buf[0];
-	if(ret != FOS__OK)
-		return FOS__FAIL;
-
-	if(timeout_ms == 0)
-		return FOS__OK;
-
-	fos_ret_val_t* rv_ptr = (fos_ret_val_t*)buf[3];
-	if(rv_ptr == NULL)
-		return FOS__FAIL;
-	if(rv_ptr->sign != FOS_NOTE_SIGN)
-		return FOS__FAIL;
-
-	if(rv_ptr->timeout_flag == FOS__DISABLE)
-		return FOS__OK;
-	return FOS__FAIL;
+	return Private_SYS_CheckError(buf);
 }
 
 
@@ -414,7 +425,7 @@ fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms)
 fos_ret_t SYS_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return Kernel_FOS_Queue32ReadData(que, data_ptr);
 
 	uint32_t buf[3];
 	buf[2] = (uint32_t)que;
@@ -615,25 +626,14 @@ fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms)
 	if(__get_IPSR() != 0)
 		return FOS__FAIL;
 
-	uint32_t buf[4];
+	uint32_t buf[5];
 	buf[1] = (uint32_t)mutex;
 	buf[2] = (uint32_t)timeout_ms;
+	buf[3] = (fos_sw_t)FOS__DISABLE;   // the value by default
 
 	system_call(FOS_SYSCALL_FOS_MUTEX_TAKE, buf);
 
-	fos_ret_t ret = (fos_ret_t)buf[0];
-	if(ret != FOS__OK)
-		return FOS__FAIL;
-
-	fos_ret_val_t* rv_ptr = (fos_ret_val_t*)buf[3];
-	if(rv_ptr == NULL)
-		return FOS__FAIL;
-	if(rv_ptr->sign != FOS_NOTE_SIGN)
-		return FOS__FAIL;
-
-	if(rv_ptr->timeout_flag == FOS__DISABLE)
-		return FOS__OK;
-	return FOS__FAIL;
+	return Private_SYS_CheckError(buf);
 }
 
 
@@ -789,14 +789,32 @@ fos_ret_t SYS_FOS_LogData(char *str, fos_log_type_t type)
 }
 
 
+static fos_ret_t Private_SYS_CheckError(uint32_t *buf)
+{
+	// check ret status: if FOS__FAIL, then error is occurred and thread has not been blocked
+	fos_ret_t ret = (fos_ret_t)buf[0];
+	if(ret != FOS__OK)
+		return FOS__FAIL;
 
+	// if got here, no error is occurred
+	// check thread blocking status: if FOS__DISABLE, then thread has not been blocked
+	fos_sw_t lock_flag = (fos_sw_t)buf[3];
+	if(lock_flag == FOS__DISABLE)
+		return FOS__OK;
 
+	// if got here, thread had been blocked and now has been unlocked again
+	// and we need check timeout condition
+	fos_ret_val_t* rv_ptr = (fos_ret_val_t*)buf[4];
+	if(rv_ptr == NULL)
+		return FOS__FAIL;
+	if(rv_ptr->sign != FOS_NOTE_SIGN)
+		return FOS__FAIL;
 
-
-
-
-
-
+	// check timeout condition
+	if(rv_ptr->timeout_flag == FOS__DISABLE)
+		return FOS__OK;
+	return FOS__FAIL;
+}
 
 
 

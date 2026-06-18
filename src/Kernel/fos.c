@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.6.05
- * @date      08.05.2026
+ * @version   V1.6.08
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -839,7 +839,8 @@ fos_ret_t FOS_LockId(fos_t *p, uint8_t id, uint32_t lock, user_desc_t lock_obj_u
 	if(thr == NULL)
 		return FOS__FAIL;
 
-	FOS_ThreadLock(thr, lock, lock_obj_ud, timeout_ms);  // block the thread
+	if(FOS_ThreadLock(thr, lock, lock_obj_ud, timeout_ms) != FOS__OK)    // block the thread
+		return FOS__FAIL;
 
 	if(id == p->var.current_thr)                         // if current thread is being blocked
 		FOS_System_GoToKernelMode(FOS__DISABLE);         // switch to kernel mode
@@ -859,9 +860,7 @@ fos_ret_t FOS_UnlockId(fos_t *p, uint8_t id, uint32_t lock)
 	if(thr == NULL)
 		return FOS__FAIL;
 
-	FOS_ThreadUnlock(thr, lock);
-
-	return FOS__OK;
+	return FOS_ThreadUnlock(thr, lock);
 }
 
 
@@ -929,13 +928,13 @@ fos_ret_t FOS_SemBinaryDelete(fos_t *p, user_desc_t semb)
 
 
 // acquire binary semaphore
-fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb, uint32_t timeout_ms)
+fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	fos_semaphore_binary_t *ptr = FOS_GetSemaphoreBinaryDesc(p, FOS_GetObjectIdByUd(semb));
 	if(FOS_CheckSemaphoreBinaryUd(ptr, semb) != FOS__OK)
 		return FOS__FAIL;
 
-	return FOS_SemaphoreBinary_Take(ptr, p->var.current_thr, timeout_ms);
+	return FOS_SemaphoreBinary_Take(ptr, p->var.current_thr, timeout_ms, lock_flag);
 }
 
 
@@ -1002,13 +1001,13 @@ fos_ret_t FOS_SemCntDelete(fos_t *p, user_desc_t semc)
 
 
 // acquire counting semaphore
-fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms)
+fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, FOS_GetObjectIdByUd(semc));
 	if(FOS_CheckSemaphoreCntUd(ptr, semc) != FOS__OK)
 		return FOS__FAIL;
 
-	return FOS_SemaphoreCnt_Take(ptr, p->var.current_thr, timeout_ms);
+	return FOS_SemaphoreCnt_Take(ptr, p->var.current_thr, timeout_ms, lock_flag);
 }
 
 
@@ -1091,19 +1090,17 @@ fos_ret_t FOS_Queue32Delete(fos_t *p, user_desc_t que)
 
 
 // ask data
-fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, uint32_t timeout_ms)
+fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, FOS_GetObjectIdByUd(que));
 	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
 		return FOS__FAIL;
 
 	uint8_t block_thr_id = FOS_SPECIAL_ID;
-
 	if(timeout_ms)
-		if(FOS_System_GetWorkMode() == FOS__USER_WORK_MODE)
-			block_thr_id = p->var.current_thr;
+		block_thr_id = p->var.current_thr;
 
-	return FOS_Queue32_AskData(ptr, block_thr_id, timeout_ms);
+	return FOS_Queue32_AskData(ptr, block_thr_id, timeout_ms, lock_flag);
 }
 
 
@@ -1197,13 +1194,13 @@ fos_ret_t FOS_MutexDelete(fos_t *p, user_desc_t mutex)
 
 
 // acquire mutex
-fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex, uint32_t timeout_ms)
+fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	fos_mutex_t *ptr = FOS_GetMutexDesc(p, FOS_GetObjectIdByUd(mutex));
 	if(FOS_CheckMutexUd(ptr, mutex) != FOS__OK)
 		return FOS__FAIL;
 
-	return FOS_Mutex_Take(ptr, p->var.current_thr, timeout_ms);
+	return FOS_Mutex_Take(ptr, p->var.current_thr, timeout_ms, lock_flag);
 }
 
 

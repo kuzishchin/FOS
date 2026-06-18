@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_mutex.c
  * @brief     Mutex. Source file.
- * @version   V1.1.02
- * @date      08.05.2026
+ * @version   V1.1.03
+ * @date      15.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -104,7 +104,7 @@ fos_ret_t FOS_Mutex_SetUserDesc(fos_mutex_t *p, user_desc_t user_desc)
 
 
 // взять
-fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms)
+fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
 		return FOS__FAIL;
@@ -136,11 +136,7 @@ fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms)
 		}
 	}*/
 
-	fos_ret_t ret = FOS_SemaphoreBinary_Take(p->semb_ptr, thr_id, timeout_ms);      // берем бинарный семафор
-	if(ret != FOS__OK)
-		return ret;
-
-	return FOS__OK;
+	return FOS_SemaphoreBinary_Take(p->semb_ptr, thr_id, timeout_ms, lock_flag);      // берем бинарный семафор
 }
 
 

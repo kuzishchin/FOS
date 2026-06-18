@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.h
  * @brief     API of OS for user applications. Header file.
- * @version   V1.5.03
- * @date      08.05.2026
+ * @version   V1.5.05
+ * @date      08.06.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -99,7 +99,7 @@ fos_ret_t API_FOS_Terminate(uint8_t terminate_code);
 
 /**
  * 2.1.6 Terminate the thread with the specified descriptor
- * Thread-safe, call from the thread intended for termination
+ * Thread-safe, call from the thread or from the main loop
  * desc - descriptor of the thread being terminated
  * terminate_code - termination code, describes the termination result (0 - successful termination, >0 - user defined any error code)
  * Returns execution status
@@ -274,7 +274,7 @@ fos_ret_t API_FOS_Sleep(uint32_t time);
  * Thread-safe, call from the thread where it is needed to allocate memory
  * size_bytes - memory length to allocate
  * Returns pointer to allocated memory
- * Returns NULL if an error is occured
+ * Returns NULL if an error is occurred
  *
  * Actual from v1.0.5
  */
@@ -442,7 +442,7 @@ fos_ret_t API_FOS_DeleteSemBinary(user_desc_t semb);
 
 /*
  * 3.1.4b Acquire binary semaphore
- * Thread-safe, call from the thread that is acquiring semaphore
+ * Thread-safe, call from the thread, from the main loop and the ISR (main loop and ISR only in no blocking mode)
  * semb - binary semaphore user descriptor
  * timeout_ms - timeout in milliseconds, if 'FOS_INF_TIME' - infinite, no timeout, if '0' - no blocking mode
  * Returns execution status
@@ -529,7 +529,7 @@ fos_ret_t API_FOS_DeleteSemCnt(user_desc_t semc);
 
 /*
  * 3.2.4b Acquire counting semaphore
- * Thread-safe, call from the thread that is acquiring semaphore
+ * Thread-safe, call from the thread, from the main loop and the ISR (main loop and ISR only in no blocking mode)
  * semc - binary semaphore user descriptor
  * timeout_ms - timeout in milliseconds, if 'FOS_INF_TIME' - infinite, no timeout, if '0' - no blocking mode
  * Returns execution status
@@ -724,7 +724,7 @@ fos_ret_t API_FOS_DeleteQueue32(user_desc_t que);
 
 /*
  * 4.1.3b Read data from a queue32 for uint32_t data
- * Thread-safe, call from the thread or from the main loop
+ * Thread-safe, call from the thread, from the main loop and the ISR (main loop and ISR only in no blocking mode)
  * que - a queue32
  * data_ptr - pointer for read data
  * timeout_ms - timeout im ms. If equal '0' then no blocking mode, if equal 'FOS_INF_TIME' then no timeout mode

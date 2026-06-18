@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.c
  * @brief     Kernel. Source file.
- * @version   V1.5.19
- * @date      05.05.2026
+ * @version   V1.5.22
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -32,7 +32,7 @@ static fos_t fos;                                          // OS
 
 extern uint32_t kernel_stack[FOS_KERNEL_STACK_SIZE / 4];   // kernel stack
 
-static char *FOS_ver = "FOS version 1.0.7 build 10 08.05.2026 api-1.1\r\n\0";  // FOS version
+static char *FOS_ver = "FOS version 1.0.7 build 14 08.06.2026 api-1.1\r\n\0";  // FOS version
 
 static fwriter_t* fptr = NULL;
 
@@ -491,11 +491,12 @@ fos_ret_t Kernel_FOS_DeleteSemBinary(user_desc_t semb)
 
 
 // take the binary semaphore with picked descriptor
-fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms)
+fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return FOS__FAIL;
-	return FOS_SemBinaryTake(&fos, semb, timeout_ms);
+		if(timeout_ms)
+			return FOS__FAIL;
+	return FOS_SemBinaryTake(&fos, semb, timeout_ms, lock_flag);
 }
 
 
@@ -551,11 +552,12 @@ fos_ret_t Kernel_FOS_DeleteSemCnt(user_desc_t semc)
 
 
 // take the counting semaphore
-fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms)
+fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return FOS__FAIL;
-	return FOS_SemCntTake(&fos, semc, timeout_ms);
+		if(timeout_ms)
+			return FOS__FAIL;
+	return FOS_SemCntTake(&fos, semc, timeout_ms, lock_flag);
 }
 
 
@@ -613,9 +615,12 @@ fos_ret_t Kernel_FOS_DeleteQueue32(user_desc_t que)
 
 
 // ask data
-fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms)
+fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
-	return FOS_Queue32AskData(&fos, que, timeout_ms);
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		if(timeout_ms)
+			return FOS__FAIL;
+	return FOS_Queue32AskData(&fos, que, timeout_ms, lock_flag);
 }
 
 
@@ -688,11 +693,11 @@ fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex)
 
 
 // take the mutex with picked descriptor
-fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms)
+fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
 		return FOS__FAIL;
-	return FOS_MutexTake(&fos, mutex, timeout_ms);
+	return FOS_MutexTake(&fos, mutex, timeout_ms, lock_flag);
 }
 
 
@@ -933,17 +938,17 @@ fos_ret_t Kernel_FOS_UnlinkThreadFromSem(user_desc_t sem, user_desc_t thr_ud)
 
 // callback to thread lock with picked id
 // used via weak callback in the fos_lock.c
-void FOS_Lock_LockThread(uint8_t thr_id, user_desc_t lock_obj_ud, uint32_t timeout_ms)
+fos_ret_t FOS_Lock_LockThread(uint8_t thr_id, user_desc_t lock_obj_ud, uint32_t timeout_ms)
 {
-	FOS_LockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG, lock_obj_ud, timeout_ms);
+	return FOS_LockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG, lock_obj_ud, timeout_ms);
 }
 
 
 // callback to thread unlock with picked id
 // used via weak callback in the fos_lock.c
-void FOS_Lock_UnlockThread(uint8_t thr_id)
+fos_ret_t FOS_Lock_UnlockThread(uint8_t thr_id)
 {
-	FOS_UnlockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG);
+	return FOS_UnlockId(&fos, thr_id, FOS_LOCK_OBJ_FLAG);
 }
 
 

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.6.05
- * @date      08.05.2026
+ * @version   V1.6.08
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -174,7 +174,7 @@ fos_ret_t FOS_SemBinaryReg(fos_t *p, fos_semaphore_binary_t *semb);
 fos_ret_t FOS_SemBinaryDelete(fos_t *p, user_desc_t semb);
 
 // acquire binary semaphore
-fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb, uint32_t timeout_ms);
+fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // release binary semaphore
 fos_ret_t FOS_SemBinaryGive(fos_t *p, user_desc_t semb);
@@ -186,7 +186,7 @@ fos_ret_t FOS_SemCntReg(fos_t *p, fos_semaphore_cnt_t *semc);
 fos_ret_t FOS_SemCntDelete(fos_t *p, user_desc_t semc);
 
 // acquire counting semaphore
-fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms);
+fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // release counting semaphore
 fos_ret_t FOS_SemCntGive(fos_t *p, user_desc_t semc);
@@ -201,7 +201,7 @@ fos_ret_t FOS_Queue32JoinToSemCnt(fos_t *p, fos_queue32_t *que, user_desc_t semc
 fos_ret_t FOS_Queue32Delete(fos_t *p, user_desc_t que);
 
 // ask data
-fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, uint32_t timeout_ms);
+fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // read data
 // one must ask data before read every times
@@ -220,7 +220,7 @@ fos_ret_t FOS_MutexJoinToSemBinary(fos_t *p, fos_mutex_t *mut, user_desc_t semb)
 fos_ret_t FOS_MutexDelete(fos_t *p, user_desc_t mutex);
 
 // acquire mutex
-fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex, uint32_t timeout_ms);
+fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // set owner
 fos_ret_t FOS_MutexSetOwner(fos_t *p, user_desc_t mutex);

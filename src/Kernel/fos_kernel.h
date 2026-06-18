@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.h
  * @brief     Kernel. Header file.
- * @version   V1.5.19
- * @date      05.05.2026
+ * @version   V1.5.22
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -73,7 +73,7 @@ user_desc_t Kernel_FOS_CreateSemBinary(fos_semb_state_t init_state);
 fos_ret_t Kernel_FOS_DeleteSemBinary(user_desc_t semb);
 
 // take the binary semaphore with picked descriptor
-fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms);
+fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // get the semaphore binary user descriptor by the thread user descriptor
 user_desc_t Kernel_FOS_GetThreadSembDesc(user_desc_t desc);
@@ -88,7 +88,7 @@ user_desc_t Kernel_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
 fos_ret_t Kernel_FOS_DeleteSemCnt(user_desc_t semc);
 
 // take the counting semaphore
-fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms);
+fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // create the queue for uint32_t
 user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode);
@@ -97,7 +97,7 @@ user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode);
 fos_ret_t Kernel_FOS_DeleteQueue32(user_desc_t que);
 
 // ask data
-fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms);
+fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // read data
 // one must ask data before read every times
@@ -116,7 +116,7 @@ user_desc_t Kernel_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority);
 fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex);
 
 // take the mutex with picked descriptor
-fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms);
+fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // set owner
 fos_ret_t Kernel_FOS_MutexSetOwner(user_desc_t mutex);

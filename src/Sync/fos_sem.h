@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.h
  * @brief     Counting named strong semaphore. Header file.
- * @version   V1.2.02
- * @date      08.05.2026
+ * @version   V1.2.04
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -35,7 +35,7 @@ fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_
 
 // взять
 // поток с FOS_SPECIAL_ID уменьшает счётчик но не блоирует
-fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms);
+fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // дать
 fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p);

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.3.02
- * @date      08.05.2026
+ * @version   V1.3.04
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -38,18 +38,20 @@ static uint8_t Private_FOS_Lock_FindIndById(fos_lock_t *p, uint8_t thr_id);
 // заглушка на блокировку потока с id
 // реализация через функцию ядра
 // defined in the fos_kernel.c
-__weak void FOS_Lock_LockThread(uint8_t thr_id, user_desc_t lock_obj_ud, uint32_t timeout_ms)
+__weak fos_ret_t FOS_Lock_LockThread(uint8_t thr_id, user_desc_t lock_obj_ud, uint32_t timeout_ms)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
 }
 
 
 // заглушка на разблокировку потока с id
 // реализация через функцию ядра
 // defined in the fos_kernel.c
-__weak void FOS_Lock_UnlockThread(uint8_t thr_id)
+__weak fos_ret_t FOS_Lock_UnlockThread(uint8_t thr_id)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
 }
 
 
@@ -95,9 +97,7 @@ fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id, uint32_t timeout_ms)
 
 	p->lock_thr_cnt++;              // инкермент счётчика заблокированных потоков
 
-	FOS_Lock_LockThread(thr_id, p->owner_ud, timeout_ms);    // блокируем поток
-
-	return FOS__OK;
+	return FOS_Lock_LockThread(thr_id, p->owner_ud, timeout_ms);    // блокируем поток
 }
 
 
@@ -117,11 +117,11 @@ fos_ret_t FOS_Lock_Give(fos_lock_t *p)
 
 		p->lock_thr_cnt--;                      // декремент счётчика заблокированных потоков
 
-		if(thr_id != FOS_WRONG_THREAD_ID)       // если поток существующий
-			FOS_Lock_UnlockThread(thr_id);      // разблокируем поток
+		if(thr_id != FOS_WRONG_THREAD_ID)            // если поток существующий
+			return FOS_Lock_UnlockThread(thr_id);    // разблокируем поток
 	}
 
-	return FOS__OK;
+	return FOS__FAIL;
 }
 
 

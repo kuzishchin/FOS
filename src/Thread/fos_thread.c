@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.3.00
- * @date      05.05.2026
+ * @version   V1.3.02
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -242,13 +242,13 @@ static void FOS_ThreadWeakUp(fos_thread_t *p)
 
 
 // установить блокировку на поток
-void FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms)
+fos_ret_t FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms)
 {
 	if(p == NULL)
-		return;
+		return FOS__FAIL;
 
 	if(p->var.state == FOS__THREAD_SUSPEND)
-		return;
+		return FOS__FAIL;
 
 	FOS_ThreadSetLockFlag(p, lock);
 
@@ -259,18 +259,22 @@ void FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uin
 
 		if(p->var.ret_val_ptr)
 			p->var.ret_val_ptr->timeout_flag = FOS__DISABLE;
+
+		return FOS__OK;
 	}
+
+	return FOS__FAIL;
 }
 
 
 // снять блокировку с потока
-void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock)
+fos_ret_t FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock)
 {
 	if(p == NULL)
-		return;
+		return FOS__FAIL;
 
 	if(p->var.state == FOS__THREAD_SUSPEND)
-		return;
+		return FOS__FAIL;
 
 	FOS_ThreadReleaseLockFlag(p, lock);
 
@@ -278,7 +282,11 @@ void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock)
 	{
 		p->var.lock_obj_ud = FOS_WRONG_USER_DESC;
 		FOS_ThreadWeakUp(p);
+
+		return FOS__OK;
 	}
+
+	return FOS__FAIL;
 }
 
 

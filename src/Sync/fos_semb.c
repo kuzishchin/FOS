@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_semb.c
  * @brief     Binary named strong semaphore. Source file.
- * @version   V1.3.01
- * @date      05.05.2026
+ * @version   V1.3.03
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -53,22 +53,30 @@ fos_ret_t FOS_SemaphoreBinary_SetUserDesc(fos_semaphore_binary_t *p, user_desc_t
 
 
 // взять
-fos_ret_t FOS_SemaphoreBinary_Take(fos_semaphore_binary_t *p, uint8_t thr_id, uint32_t timeout_ms)
+fos_ret_t FOS_SemaphoreBinary_Take(fos_semaphore_binary_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
-	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
+	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT) || (lock_flag == NULL))
 		return FOS__FAIL;
+
+	fos_ret_t ret = FOS__OK;
+	uint32_t s;
+	ENTER_CRITICAL(s);
 
 	switch(p->state)
 	{
 	case FOS_SEMB_STATE__UNLOCK:                     // если семафор был разблокирован
 		p->state = FOS_SEMB_STATE__LOCK;             // блокируем его
+		*lock_flag = FOS__DISABLE;                   // говорим что попытки блокировки не было
 	break;
 
 	case FOS_SEMB_STATE__LOCK:                       // если семафор был заблокирован
-		return FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);  // блокируем поток его берущий
+		*lock_flag = FOS__ENABLE;                    // говорим что поытки блокировки была
+		ret = FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);  // блокируем поток его берущий
 	}
 
-	return FOS__OK;
+	LEAVE_CRITICAL(s);
+
+	return ret;
 }
 
 

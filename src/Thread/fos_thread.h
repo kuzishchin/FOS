@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.3.00
- * @date      05.05.2026
+ * @version   V1.3.02
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -105,10 +105,10 @@ fos_ret_t FOS_Thread_SetTerminateFlag(fos_thread_t *p, int32_t terminate_code);
 void FOS_ThreadSleep(fos_thread_t *p, uint32_t time, fos_sw_t signal_sw);
 
 // установить блокировку на поток
-void FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms);
+fos_ret_t FOS_ThreadLock(fos_thread_t *p, uint32_t lock, user_desc_t lock_obj_ud, uint32_t timeout_ms);
 
 // снять блокировку с потока
-void FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock);
+fos_ret_t FOS_ThreadUnlock(fos_thread_t *p, uint32_t lock);
 
 // is thread run
 fos_ret_t FOS_IsThreadRun(fos_thread_t *p);

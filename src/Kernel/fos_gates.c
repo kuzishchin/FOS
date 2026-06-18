@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.c
  * @brief     Gates for system call handling. Source file.
- * @version   V1.2.15
- * @date      05.05.2026
+ * @version   V1.2.16
+ * @date      15.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -181,8 +181,8 @@ static void GATE_FOS_Sleep(void* data)
 static void GATE_FOS_SemBinaryTake(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemBinaryTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
+	buf_ptr[0] = (uint32_t)Kernel_FOS_SemBinaryTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sw_t*)&buf_ptr[3]);
+	buf_ptr[4] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
@@ -266,8 +266,8 @@ static void GATE_File_Unmount(void* data)
 static void GATE_FOS_SemCntTake(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
+	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sw_t*)&buf_ptr[3]);
+	buf_ptr[4] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
@@ -309,8 +309,8 @@ static void GATE_FOS_DeleteQueue32(void* data)
 static void GATE_FOS_AskDataQueue32(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32AskData((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
+	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32AskData((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sw_t*)&buf_ptr[3]);
+	buf_ptr[4] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 
@@ -361,8 +361,8 @@ static void GATE_FOS_DeleteMutex(void* data)
 static void GATE_FOS_MutexTake(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_MutexTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
-	buf_ptr[3] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
+	buf_ptr[0] = (uint32_t)Kernel_FOS_MutexTake((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sw_t*)&buf_ptr[3]);
+	buf_ptr[4] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
 }
 
 

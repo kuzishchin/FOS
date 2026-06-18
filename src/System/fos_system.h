@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.4.03
- * @date      06.05.2026
+ * @version   V1.4.07
+ * @date      08.06.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

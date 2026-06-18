@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.c
  * @brief     API of OS for queue32. Source file.
- * @version   V1.0.04
- * @date      05.05.2026
+ * @version   V1.0.07
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -89,13 +89,13 @@ fos_ret_t FOS_Queue32_WriteData(fos_queue32_t* p, uint32_t data)
 
 // ask data
 // if thr_id == FOS_SPECIAL_ID semafore is taken but thread is not blocked
-fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout_ms)
+fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
-	if(p == NULL)
+	if((p == NULL) || (lock_flag == NULL))
 		return FOS__FAIL;
 
 	if(p->semc_ptr)
-		return FOS_SemaphoreCnt_Take(p->semc_ptr, thr_id, timeout_ms);
+		return FOS_SemaphoreCnt_Take(p->semc_ptr, thr_id, timeout_ms, lock_flag);
 
 	return FOS__OK;
 }
@@ -108,7 +108,7 @@ fos_ret_t FOS_Queue32_ReadData(fos_queue32_t* p, uint32_t* data_ptr)
 	if(p == NULL)
 		return FOS__FAIL;
 
-	msg32_ret_t ret = Msg32_ReadData(&p->msg, data_ptr);
+	msg32_ret_t ret = Msg32_ReadDataProtected(&p->msg, data_ptr);
 	if(ret != MSG32__OK)
 		return FOS__FAIL;
 

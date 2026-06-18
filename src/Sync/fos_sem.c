@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.c
  * @brief     Counting named strong semaphore. Source file.
- * @version   V1.2.02
- * @date      08.05.2026
+ * @version   V1.2.04
+ * @date      18.05.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -58,24 +58,35 @@ fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_
 
 // взять
 // поток с FOS_SPECIAL_ID уменьшает счётчик но не блоирует
-fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms)
+fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
-	if(p == NULL)
+	if((p == NULL) || (lock_flag == NULL))
 		return FOS__FAIL;
 
 	if((thr_id >= FOS_MAX_THR_CNT) && (thr_id != FOS_SPECIAL_ID))
 		return FOS__FAIL;
 
+	fos_ret_t ret = FOS__OK;
+	uint32_t s;
+	ENTER_CRITICAL(s);
+
 	if(p->cnt)          // если счётчик не пуст
 	{
-		p->cnt--;       // декремент
+		p->cnt--;                                    // декремент
+		*lock_flag = FOS__DISABLE;                   // говорим что попытки блокировки не было
 	}else               // если счётчик пуст
 	{
 		if(thr_id != FOS_SPECIAL_ID)
-			return FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);    // блокируем поток его берущий
+		{
+			*lock_flag = FOS__ENABLE;                    // говорим что поытки блокировки была
+			ret = FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);    // блокируем поток его берущий
+		}else
+			*lock_flag = FOS__DISABLE;                   // говорим что попытки блокировки не было
 	}
 
-	return FOS__OK;
+	LEAVE_CRITICAL(s);
+
+	return ret;
 }
 
 
