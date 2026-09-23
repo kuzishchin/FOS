@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svc_id.h
  * @brief     System call IDs. Header file.
- * @version   V1.2.13
- * @date      05.05.2026
+ * @version   V1.2.17
+ * @date      25.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -55,7 +55,7 @@
 #define FOS_SYSCALL_FOS_GET_CURRENT_THR_UD  0x1C        // user_desc_t Kernel_FOS_GetCurrentThreadUd();
 #define FOS_SYSCALL_FOS_CREATE_MUTEX        0x1D        // user_desc_t Kernel_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority);
 #define FOS_SYSCALL_FOS_DELETE_MUTEX        0x1E        // fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex);
-#define FOS_SYSCALL_FOS_MUTEX_TAKE          0x2F        // fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms);
+#define FOS_SYSCALL_FOS_MUTEX_TAKE          0x1F        // fos_ret_t Kernel_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms);
 #define FOS_SYSCALL_FOS_MUTEX_SET_OWNER     0x20        // fos_ret_t Kernel_FOS_MutexSetOwner(user_desc_t mutex);
 #define FOS_SYSCALL_FOS_MUTEX_GIVE          0x21        // fos_ret_t Kernel_FOS_MutexGive(user_desc_t mutex);
 #define FOS_SYSCALL_FOS_LOCAL_ALLOC         0x22        // void* Kernel_FOS_LocalAlloc(uint32_t size_bytes);
@@ -67,7 +67,12 @@
 #define FOS_SYSCALL_FOS_THREAD_NOTE_GET_PTR 0x28        // fos_thr_note_t* Kernel_FOS_GetThreadNotePtr();
 #define FOS_SYSCALL_FOS_THREAD_GET_EP_WA    0x29        // uint32_t Kernel_FOS_GetThreadEpA();
 #define FOS_SYSCALL_FOS_LOG_USER_DATA       0x2A        // fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type);
-
+#define FOS_SYSCALL_FOS_SEMC_BM_GIVE        0x2B        // fos_ret_t Kernel_FOS_SemCntBlockingModeGive(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag);
+#define FOS_SYSCALL_FOS_QUEUE_32_ASK_SPACE  0x2C        // fos_ret_t Kernel_FOS_Queue32AskSpace(user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag);
+#define FOS_SYSCALL_FOS_QUEUE_32_WRITE_BM   0x2D        // fos_ret_t Kernel_FOS_Queue32WriteDataBM(user_desc_t que, uint32_t data);
+#define FOS_SYSCALL_FOS_THREAD_GET_PR       0x2E        // uint8_t Kernel_FOS_GetThreadPriority(user_desc_t ud);
+#define FOS_SYSCALL_FOS_THREAD_SET_PR       0x2F        // fos_ret_t Kernel_FOS_SetThreadPriority(user_desc_t ud, uint8_t priority);
+#define FOS_SYSCALL_FOS_THREAD_RESET_PR     0x30        // fos_ret_t Kernel_FOS_ResetThreadPriority(user_desc_t ud);
 
 
 #endif /* APPLICATION_FOS_FOS_SVC_ID_H_ */

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_mutex.h
  * @brief     AMutex. Header file.
- * @version   V1.1.03
- * @date      15.05.2026
+ * @version   V1.2.05
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,7 +28,7 @@
 
 
 // инициализация
-void FOS_Mutex_Init(fos_mutex_t *p, fos_mutex_type_t type, uint8_t pcp_priority);
+void FOS_Mutex_Init(fos_mutex_t *p, uint8_t pcp_priority, char* name_ptr, uint32_t attr_bits);
 
 // деинициализация
 void FOS_Mutex_DeInit(fos_mutex_t *p);

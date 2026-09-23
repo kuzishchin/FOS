@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svcall.c
  * @brief     Low level functional for system calls. Source file.
- * @version   V1.0.05
- * @date      06.02.2026
+ * @version   V1.0.06
+ * @date      25.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -115,6 +115,8 @@ static void _system_reg_call(sys_call_t *p, svcall_t func, uint16_t func_id)
 
 	if(p->reg_list[func_id] == 0)
 		p->reg_list[func_id] = (uint32_t)func;
+	else
+		while(1);
 }
 
 

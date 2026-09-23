@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.c
  * @brief     API of OS for queue32. Source file.
- * @version   V1.0.07
- * @date      18.05.2026
+ * @version   V1.2.00
+ * @date      20.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,7 +27,7 @@
 
 
 // initialization
-fos_ret_t FOS_Queue32_Init(fos_queue32_t* p, uint32_t* buf_ptr, uint16_t buf_size)
+fos_ret_t FOS_Queue32_Init(fos_queue32_t* p, uint32_t* buf_ptr, uint16_t buf_size, char* name_ptr)
 {
 	if((p == NULL) || (buf_ptr == NULL))
 		return FOS__FAIL;
@@ -36,6 +36,8 @@ fos_ret_t FOS_Queue32_Init(fos_queue32_t* p, uint32_t* buf_ptr, uint16_t buf_siz
 	msg32_ret_t ret = Msg32_Initialize(&p->msg, buf_ptr, buf_size);
 	if(ret != MSG32__OK)
 		return FOS__FAIL;
+	if(name_ptr)
+		strncpy(p->name, name_ptr, FOS_QUEUE_NAME_LEN - 1);
 
 	return FOS__OK;
 }
@@ -81,7 +83,7 @@ fos_ret_t FOS_Queue32_WriteData(fos_queue32_t* p, uint32_t data)
 	LEAVE_CRITICAL(s);
 
 	if(ret != MSG32__OK)
-		return FOS__FAIL;
+		return FOS__ERR_RESOURCE;
 
 	return FOS__OK;
 }
@@ -116,7 +118,33 @@ fos_ret_t FOS_Queue32_ReadData(fos_queue32_t* p, uint32_t* data_ptr)
 }
 
 
+// ask space
+// if thr_id == FOS_SPECIAL_ID semafore is taken but thread is not blocked
+fos_ret_t FOS_Queue32_AskSpace(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	if((p == NULL) || (lock_flag == NULL))
+		return FOS__FAIL;
 
+	if(p->semc_ptr)
+		return FOS_SemaphoreCnt_GiveWithBlock(p->semc_ptr, thr_id, timeout_ms, lock_flag);
+
+	return FOS__OK;
+}
+
+
+// block mode write data
+// do call only after FOS_Queue32_AskSpace
+fos_ret_t FOS_Queue32_WriteDataBM(fos_queue32_t* p, uint32_t data)
+{
+	if(p == NULL)
+		return FOS__FAIL;
+
+	msg32_ret_t ret = Msg32_WriteDataProtected(&p->msg, data);
+	if(ret != MSG32__OK)
+		return FOS__FAIL;
+
+	return FOS__OK;
+}
 
 
 

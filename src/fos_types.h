@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_types.h
  * @brief     OS types declarations. Header file.
- * @version   V1.3.19
- * @date      06.05.2026
+ * @version   V1.5.00
+ * @date      16.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -44,6 +44,7 @@
 #define FOS_WRONG_QUE_32_ID    FOS_WRONG_OBJ_ID
 #define FOS_WRONG_MUTEX_ID     FOS_WRONG_OBJ_ID
 #define FOS_WRONG_FWRITER_ID   FOS_WRONG_OBJ_ID
+#define FOS_WRONG_PRIORITY     FOS_WRONG_OBJ_ID
 
 #define FOS_WRONG_USER_DESC    0             // wrong user defined descriptor
 #define FOS_KERNEL_USER_DESC   0x1           // kernel mode user defined descriptor
@@ -54,7 +55,7 @@
 #define FOS_KERNEL_HEAP_ID     0x1           // ID of kernel heap
 #define FOS_THREADS_HEAP_ID    0x2           // ID of threads heap
 
-#define FOS_SYS_CALL_CNT       0x30          // maximum system call count
+#define FOS_SYS_CALL_CNT       0x40          // maximum system call count
 #define FOS_PRIORITY_CNT       8             // maximum priorities count(0 is the highest, 1 - lower than 0, etc.)
 
 #define FOS_HARD_FAULT_CALL_ID 0xFFFF        // identifier of hard fault calling function
@@ -75,6 +76,11 @@
 #define FOS_UD_TYPE_SHIFT      24            // user descriptor type bit shift
 #define FOS_UD_IND_SHIFT       16            // use descriptor ind bit shift
 
+#define FOS_MUTEX_RECURSIVE    0x00000001U   // recursive mutex
+#define FOS_MUTEX_PIP          0x00000002U   // mutex with Priority Inheritance Protocol (PIP)
+#define FOS_MUTEX_PCP          0x00000004U   // mutex with Priority Ceiling Protocol (PCP)
+#define FOS_MUTEX_ROBUST       0x00000008U   // robust mutex
+
 //#define FOS_USE_MPU
 
 
@@ -90,10 +96,39 @@ typedef enum
 // return codes
 typedef enum
 {
-	FOS__OK = 0,
-	FOS__FAIL,
+	FOS__OK            =  0,     // OK
+	FOS__FAIL          =  1,     // run-time error
+	FOS__ERR_COND      =  2,     // wrong condition to call
+	FOS__ERR_ML        =  3,     // can not be called from main loop
+	FOS__NOT_ALIVE     =  4,     // thread is not alive
+
+	/*
+	 * compatible to fos_status_t codes are below
+	 */
+	FOS__ERR           = -1,
+	FOS__ERR_TIMEOUT   = -2,
+	FOS__ERR_RESOURCE  = -3,
+	FOS__ERR_PARAMETER = -4,
+	FOS__ERR_NO_MEMORY = -5,
+	FOS__ERR_ISR       = -6,
+	FOS__RESERVED      =  0x7FFFFFFF,
 
 } fos_ret_t;
+
+
+// status codes
+typedef enum
+{
+	FOSST__OK            =  0,              // operation completed successfully
+	FOSST__ERR           = -1,              // unspecified RTOS error: run-time error but no other error message fits
+	FOSST__ERR_TIMEOUT   = -2,              // operation not completed within the timeout period
+	FOSST__ERR_RESOURCE  = -3,              // resource not available
+	FOSST__ERR_PARAMETER = -4,              // parameter error
+	FOSST__ERR_NO_MEMORY = -5,              // system is out of memory: it was impossible to allocate or reserve memory for the operation
+	FOSST__ERR_ISR       = -6,              // not allowed in ISR context: the function cannot be called from interrupt service routines
+	FOSST__RESERVED      =  0x7FFFFFFF,     // prevents enum down-size compiler optimization
+
+} fos_status_t;
 
 
 // semaphore states
@@ -248,7 +283,7 @@ typedef struct
 	uint32_t        stack_size;       // stack size
 	fos_thr_alloc_t alloc_type;       // thread allocation type
 	user_desc_t     semb;             // thread binary semaphore
-	uint8_t         priority_def;     // thread default priority (0 - the highest, 1 - lower than 0, etc.)
+	uint8_t         priority_def;     // thread default priority (def value for'base_pri')
 
 } fos_thread_cset_t;
 
@@ -256,7 +291,8 @@ typedef struct
 // thread settings
 typedef struct
 {
-	volatile uint8_t priority;          // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	volatile uint8_t  priority;         // thread priority (0 - the highest, 1 - lower than 0, etc.)
+	volatile uint8_t  base_pri;         // the lowest level for 'priority'
 	volatile fos_sw_t unpriv_sw;        // unprivileged switch
 
 } fos_thread_set_t;
@@ -286,6 +322,11 @@ typedef struct
 	uint32_t         heap_size;             // thread heap size
 	uint8_t          priority;              // thread priority (0 - the highest, 1 - lower than 0, etc.)
 	fos_thr_alloc_t  alloc_type;            // thread allocation type
+
+	void            *smem_cb;               // pointer to a memory for the control block object
+	uint32_t         smem_cb_size;          // size of provided memory for control block
+	void            *smem_thr;              // pointer to a memory for the stack and heap memory
+	uint32_t         smem_thr_size;         // size of a memory for the stack and heap
 
 } fos_thread_user_init_t;
 
@@ -322,6 +363,7 @@ typedef struct
 // binary semaphore
 typedef struct
 {
+	char name[FOS_SEM_NAME_LEN];       // name
 	volatile fos_semb_state_t state;   // semaphore state
 	fos_lock_t  fos_lock;              // blocker object
 	user_desc_t user_desc;             // used defined semaphore descriptor
@@ -332,6 +374,7 @@ typedef struct
 // counting semaphore
 typedef struct
 {
+	char name[FOS_SEM_NAME_LEN];       // name
 	uint32_t max_cnt;                  // max count
 	volatile uint32_t cnt;             // semaphore counter
 	fos_lock_t  fos_lock;              // blocker object
@@ -343,9 +386,14 @@ typedef struct
 // mutex
 typedef struct
 {
+	char name[FOS_MUTEX_NAME_LEN];                   // name
 	fos_semaphore_binary_t* semb_ptr;                // binary semaphore pointer
 	fos_mutex_type_t        type;                    // mutex type
 	uint8_t                 pcp_priority;            // max priority for pcp mode
+
+	fos_sw_t                robust_sw;               // the mutex robust switch
+	fos_sw_t                recursive_sw;            // the mutex recursive switch
+	uint32_t                recursive_cnt;           // mutex recursive counter
 
 	uint8_t                 owner_thr_id;            // id of the owner thread
 	user_desc_t             user_desc;               // used defined mutex descriptor
@@ -419,7 +467,12 @@ extern void FOS_INTERNAL_ERROR_OF_THE_CALLBACK(void);
 // mutex attributes
 typedef struct
 {
-	uint8_t res;     // reserved
+	char    *name;          // name
+	uint32_t attr_bits;     // attr bits
+	void    *smem_cb;       // pointer to a memory for the control block object
+	uint32_t smem_cb_size;  // size of provided memory for control block
+
+	uint8_t pcp_priority;   // PCP priority
 
 } fos_mutex_attr_t;
 
@@ -427,9 +480,38 @@ typedef struct
 // queue attributes
 typedef struct
 {
-	fos_queue_mode_t mode;
+	char    *name;          // name
+	uint32_t arrt_bits;     // attr bits
+	void    *smem_cb;       // pointer to a memory for the control block object
+	uint32_t smem_cb_size;  // size of provided memory for control block
+	void    *mq_mem;        // pointer to a memory for the data
+	uint32_t mq_size;       // len of the data memory
+
+	fos_queue_mode_t mode;  // queue mode
 
 } fos_queue_attr_t;
+
+
+// counting semaphore attributes
+typedef struct
+{
+	char    *name;          // semaphore name
+	uint32_t arrt_bits;     // reserved
+	void    *smem_cb;       // pointer to a memory for the semaphore control block object
+	uint32_t smems_cb_size; // size of provided memory for control block
+
+} fos_sem_attr_t;
+
+
+typedef fos_semaphore_binary_t fos_semb_cb_t;
+typedef fos_semaphore_cnt_t    fos_sem_cb_t;
+
+typedef struct
+{
+	fos_mutex_t            mut;
+	fos_semaphore_binary_t sem;
+
+} fos_mutex_cb_t;
 
 
 #endif /* APPLICATION_FOS_FOS_TYPES_H_ */

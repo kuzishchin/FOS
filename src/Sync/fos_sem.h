@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.h
  * @brief     Counting named strong semaphore. Header file.
- * @version   V1.2.04
- * @date      18.05.2026
+ * @version   V1.3.02
+ * @date      20.07.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,7 +28,7 @@
 
 
 // инициализация
-void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t init_cnt);
+void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t init_cnt, char* name_ptr);
 
 // установить пользовательский дескриптор
 fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_desc);
@@ -36,6 +36,10 @@ fos_ret_t FOS_SemaphoreCnt_SetUserDesc(fos_semaphore_cnt_t *p, user_desc_t user_
 // взять
 // поток с FOS_SPECIAL_ID уменьшает счётчик но не блоирует
 fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag);
+
+// дать с блокировкой
+// поток с FOS_SPECIAL_ID увеличивает счётчик но не блоирует
+fos_ret_t FOS_SemaphoreCnt_GiveWithBlock(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // дать
 fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p);

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.h
  * @brief     API of OS for queue32. Header file.
- * @version   V1.0.07
- * @date      18.05.2026
+ * @version   V1.2.00
+ * @date      20.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -31,17 +31,26 @@
 // queue of uint32_t elements
 typedef struct
 {
+	char name[FOS_QUEUE_NAME_LEN];         // name
 	msg32_t msg;                         // circ buf of uint32_t elements
 	fos_semaphore_cnt_ptr semc_ptr;      // counting semaphore for sync operations, if NULL then do not use
 	user_desc_t user_desc;               // used defined semaphore descriptor
 
 } fos_queue32_t;
 
+
+typedef struct
+{
+	fos_queue32_t       que;
+	fos_semaphore_cnt_t sem;
+
+} fos_queue32_cb_t;
+
 typedef fos_queue32_t* fos_queue32_ptr;
 
 
 // initialization
-fos_ret_t FOS_Queue32_Init(fos_queue32_t* p, uint32_t* buf_ptr, uint16_t buf_size);
+fos_ret_t FOS_Queue32_Init(fos_queue32_t* p, uint32_t* buf_ptr, uint16_t buf_size, char* name_ptr);
 
 // set user descriptor
 fos_ret_t FOS_Queue32_SetUserDesc(fos_queue32_t *p, user_desc_t user_desc);
@@ -60,8 +69,21 @@ fos_ret_t FOS_Queue32_AskData(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout
 // one must ask data before read every times
 fos_ret_t FOS_Queue32_ReadData(fos_queue32_t* p, uint32_t* data_ptr);
 
+// ask space
+// if thr_id == FOS_SPECIAL_ID semafore is taken but thread is not blocked
+fos_ret_t FOS_Queue32_AskSpace(fos_queue32_t* p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag);
+
+// block mode write data
+// do call only after FOS_Queue32_AskSpace
+fos_ret_t FOS_Queue32_WriteDataBM(fos_queue32_t* p, uint32_t data);
+
 
 #endif /* DATA_FOS_QUEUE32_H_ */
+
+
+
+
+
 
 
 

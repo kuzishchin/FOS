@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.h
  * @brief     Kernel libs. Header file.
- * @version   V1.6.08
- * @date      18.05.2026
+ * @version   V1.7.04
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -167,6 +167,15 @@ fos_ret_t FOS_UnlockId(fos_t *p, uint8_t id, uint32_t lock);
 // yield to another process
 fos_ret_t FOS_Yield();
 
+// set thread priority
+fos_ret_t FOS_SetThreadPriority(fos_t *p, uint8_t id, fos_pri_type_t pri_type, uint8_t priority);
+
+// get thread priority
+uint8_t FOS_GetThreadPriority(fos_t *p, uint8_t id, fos_pri_type_t pri_type);
+
+// reset thread priority
+fos_ret_t FOS_ResetThreadPriority(fos_t *p, uint8_t id, fos_pri_type_t pri_type);
+
 // register binary semaphore
 fos_ret_t FOS_SemBinaryReg(fos_t *p, fos_semaphore_binary_t *semb);
 
@@ -191,6 +200,9 @@ fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms, fos_sw
 // release counting semaphore
 fos_ret_t FOS_SemCntGive(fos_t *p, user_desc_t semc);
 
+// release counting semaphore in blocking mode
+fos_ret_t FOS_SemCntBlockingModeGive(fos_t *p, user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag);
+
 // register queue32
 fos_ret_t FOS_Queue32Reg(fos_t *p, fos_queue32_t *que);
 
@@ -209,6 +221,13 @@ fos_ret_t FOS_Queue32ReadData(fos_t *p, user_desc_t que, uint32_t* data_ptr);
 
 // write data
 fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data);
+
+// ask space
+fos_ret_t FOS_Queue32AskSpace(fos_t *p, user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag);
+
+// block mode write data
+// do call only after FOS_Queue32AskSpace
+fos_ret_t FOS_Queue32WriteDataBM(fos_t *p, user_desc_t que, uint32_t data);
 
 // register mutex
 fos_ret_t FOS_MutexReg(fos_t *p, fos_mutex_t *mut);

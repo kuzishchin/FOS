@@ -1,5 +1,16 @@
 # FOS versions
 
+## FOS v1.0.8 build 16 20.09.2026 api-1.1.1
+
+* The returned code by API functions has been extended.
+* The static allocated memory has been added for the binary semaphore, the counting semaphore, the mutex, the queue and the thread.
+* Releasing the counting semaphore in blocking mode has been added.
+* Writing data into the queue in blocking mode has been added.
+* The API to work with thread`s priority has been added.
+* Priority Inheritance Protocol (PIP) and Priority Ceiling Protocol (PCP) modes have been added to the mutex.
+* Some optimization is done
+* Some code refactror is done
+
 ## FOS v1.0.7 build 14 08.06.2026 api-1.1
 
 * User descriptor includes more information

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_lock.c
  * @brief     Object for locking threads. Source file.
- * @version   V1.3.04
- * @date      18.05.2026
+ * @version   V1.4.00
+ * @date      06.07.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -79,7 +79,7 @@ void FOS_Lock_SetOwnerUd(fos_lock_t *p, user_desc_t owner_ud)
 fos_ret_t FOS_Lock_Take(fos_lock_t *p, uint8_t thr_id, uint32_t timeout_ms)
 {
 	if(timeout_ms == 0)
-		return FOS__FAIL;
+		return FOS__ERR_RESOURCE;
 
 	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
 		return FOS__FAIL;

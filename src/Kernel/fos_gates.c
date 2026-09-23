@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_gates.c
  * @brief     Gates for system call handling. Source file.
- * @version   V1.2.16
- * @date      15.05.2026
+ * @version   V1.2.23
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -56,6 +56,8 @@ static void GATE_File_Unmount(void* data);
 
 static void GATE_FOS_SemCntTake(void* data);
 
+static void GATE_FOS_SemCntBlockingModeGive(void* data);
+
 static void GATE_FOS_SemCntGive(void* data);
 
 static void GATE_FOS_CreateSemCnt(void* data);
@@ -71,6 +73,10 @@ static void GATE_FOS_AskDataQueue32(void* data);
 static void GATE_FOS_ReadDataQueue32(void* data);
 
 static void GATE_FOS_WriteDataQueue32(void* data);
+
+static void GATE_FOS_AskSpaceQueue32(void* data);
+
+static void GATE_FOS_WriteDataBMQueue32(void* data);
 
 static void GATE_FOS_IsThreadAlive(void* data);
 
@@ -104,6 +110,12 @@ static void GATE_FOS_GetThreadEpA(void* data);
 
 static void GATE_FOS_LogData(void* data);
 
+static void GATE_FOS_GetThreadPriority(void* data);
+
+static void GATE_FOS_SetThreadPriority(void* data);
+
+static void GATE_FOS_ResetThreadPriority(void* data);
+
 
 
 
@@ -119,6 +131,10 @@ void GATE_FOS_Init()
 	system_reg_call(GATE_FOS_TerminateDesc, FOS_SYSCALL_FOS_THREAD_TERMINATE_D);
 	system_reg_call(GATE_FOS_IsThreadAlive, FOS_SYSCALL_FOS_IS_THREAD_ALIVE);
 	system_reg_call(GATE_FOS_GetThreadSembDesc, FOS_SYSCALL_FOS_GET_THREAD_SEMB_D);
+
+	system_reg_call(GATE_FOS_GetThreadPriority, FOS_SYSCALL_FOS_THREAD_GET_PR);
+	system_reg_call(GATE_FOS_SetThreadPriority, FOS_SYSCALL_FOS_THREAD_SET_PR);
+	system_reg_call(GATE_FOS_ResetThreadPriority, FOS_SYSCALL_FOS_THREAD_RESET_PR);
 
 	system_reg_call(GATE_FOS_Yield, FOS_SYSCALL_FOS_YIELD);
 	system_reg_call(GATE_FOS_Sleep, FOS_SYSCALL_FOS_SLEEP);
@@ -142,6 +158,7 @@ void GATE_FOS_Init()
 	system_reg_call(GATE_FOS_DeleteSemCnt, FOS_SYSCALL_FOS_DELETE_SEMC);
 	system_reg_call(GATE_FOS_SemCntTake, FOS_SYSCALL_FOS_SEMC_TAKE);
 	system_reg_call(GATE_FOS_SemCntGive, FOS_SYSCALL_FOS_SEMC_GIVE);
+	system_reg_call(GATE_FOS_SemCntBlockingModeGive, FOS_SYSCALL_FOS_SEMC_BM_GIVE);
 
 	system_reg_call(GATE_FOS_CreateMutex, FOS_SYSCALL_FOS_CREATE_MUTEX);
 	system_reg_call(GATE_FOS_DeleteMutex, FOS_SYSCALL_FOS_DELETE_MUTEX);
@@ -154,6 +171,8 @@ void GATE_FOS_Init()
 	system_reg_call(GATE_FOS_ReadDataQueue32, FOS_SYSCALL_FOS_QUEUE_32_READ);
 	system_reg_call(GATE_FOS_WriteDataQueue32, FOS_SYSCALL_FOS_QUEUE_32_WRITE);
 	system_reg_call(GATE_FOS_AskDataQueue32, FOS_SYSCALL_FOS_QUEUE_32_ASK);
+	system_reg_call(GATE_FOS_AskSpaceQueue32, FOS_SYSCALL_FOS_QUEUE_32_ASK_SPACE);
+	system_reg_call(GATE_FOS_WriteDataBMQueue32, FOS_SYSCALL_FOS_QUEUE_32_WRITE_BM);
 
 	system_reg_call(GATE_FOS_ErrorSet, FOS_SYSCALL_FOS_ERROR_SET);
 	system_reg_call(GATE_FOS_LogData, FOS_SYSCALL_FOS_LOG_USER_DATA);
@@ -210,7 +229,7 @@ static void GATE_FOS_CreateThread(void* data)
 static void GATE_FOS_CreateSemBinary(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateSemBinary((fos_semb_state_t)buf_ptr[1]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateSemBinary((fos_semb_state_t)buf_ptr[1], (fos_sem_attr_t*)buf_ptr[2]);
 }
 
 
@@ -271,6 +290,14 @@ static void GATE_FOS_SemCntTake(void* data)
 }
 
 
+static void GATE_FOS_SemCntBlockingModeGive(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_SemCntBlockingModeGive((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sw_t*)&buf_ptr[3]);
+	buf_ptr[4] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
+}
+
+
 static void GATE_FOS_SemCntGive(void* data)
 {
 	uint32_t *buf_ptr = data;
@@ -281,7 +308,7 @@ static void GATE_FOS_SemCntGive(void* data)
 static void GATE_FOS_CreateSemCnt(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateSemCnt((uint32_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateSemCnt((uint32_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sem_attr_t*)buf_ptr[3]);
 }
 
 
@@ -295,7 +322,7 @@ static void GATE_FOS_DeleteSemCnt(void* data)
 static void GATE_FOS_CreateQueue32(void* data)
 {
 	uint32_t *buf_ptr = data;
-	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateQueue32((uint16_t)buf_ptr[1], (fos_queue_mode_t)buf_ptr[2]);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateQueue32((uint16_t)buf_ptr[1], (fos_queue_attr_t*)buf_ptr[2]);
 }
 
 
@@ -328,6 +355,21 @@ static void GATE_FOS_WriteDataQueue32(void* data)
 }
 
 
+static void GATE_FOS_AskSpaceQueue32(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32AskSpace((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2], (fos_sw_t*)&buf_ptr[3]);
+	buf_ptr[4] = (uint32_t)Kernel_FOS_GetThreadRValPtr();
+}
+
+
+static void GATE_FOS_WriteDataBMQueue32(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_Queue32WriteDataBM((user_desc_t)buf_ptr[1], (uint32_t)buf_ptr[2]);
+}
+
+
 static void GATE_FOS_IsThreadAlive(void* data)
 {
 	uint32_t *buf_ptr = data;
@@ -345,9 +387,7 @@ static void GATE_FOS_GetCurrentThreadUd(void* data)
 static void GATE_FOS_CreateMutex(void* data)
 {
 	uint32_t *buf_ptr = data;
-	fos_mutex_type_t type = (fos_mutex_type_t)((buf_ptr[1]) & 0xFF);
-	uint8_t pcp_priority = (uint8_t)((buf_ptr[1] >> 8) & 0xFF);
-	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateMutex(type, pcp_priority);
+	buf_ptr[0] = (uint32_t)Kernel_FOS_CreateMutex((fos_mutex_attr_t*)buf_ptr[1]);
 }
 
 
@@ -441,6 +481,31 @@ static void GATE_FOS_LogData(void* data)
 	uint32_t *buf_ptr = data;
 	buf_ptr[0] = (uint32_t)Kernel_FOS_LogUserData((char*)buf_ptr[1], (fos_log_type_t)buf_ptr[2]);
 }
+
+
+static void GATE_FOS_GetThreadPriority(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_GetThreadBasePriority((user_desc_t)buf_ptr[1]);
+}
+
+
+static void GATE_FOS_SetThreadPriority(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_SetThreadBasePriority((user_desc_t)buf_ptr[1], (uint8_t)buf_ptr[2]);
+}
+
+
+static void GATE_FOS_ResetThreadPriority(void* data)
+{
+	uint32_t *buf_ptr = data;
+	buf_ptr[0] = (uint32_t)Kernel_FOS_ResetThreadBasePriority((user_desc_t)buf_ptr[1]);
+}
+
+
+
+
 
 
 

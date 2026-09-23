@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos.c
  * @brief     Kernel libs. Source file.
- * @version   V1.6.08
- * @date      18.05.2026
+ * @version   V1.7.04
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -166,7 +166,7 @@ fos_ret_t FOS_Start(fos_t *p)
 	if(p == NULL)
 		return FOS__FAIL;
 	if(p->var.fos_sw == FOS__ENABLE)
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	Private_FOS_LoadUserSP(p);             // load stack of the first process
 	p->var.fos_sw = FOS__ENABLE;           // enable the OS
@@ -581,7 +581,7 @@ fos_ret_t FOS_RunId(fos_t *p, uint8_t id)
 	// get thread descriptor by identifier
 	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
 	if(thr == NULL)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	// set thread run flag
 	return FOS_Thread_SetRunFlag(thr);
@@ -597,7 +597,7 @@ fos_ret_t FOS_RunIdWithArg(fos_t *p, uint8_t id, uint8_t* arg_ptr, uint32_t arg_
 	// get thread descriptor by identifier
 	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
 	if(thr == NULL)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	fos_ret_t ret = FOS_Thread_AddArg(thr, arg_ptr, arg_len);
 	if(ret != FOS__OK)
@@ -617,11 +617,11 @@ fos_ret_t FOS_TerminateId(fos_t *p, uint8_t id, int32_t terminate_code)
 	// get thread descriptor by identifier
 	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
 	if(thr == NULL)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	// set thread termination flags
 	if(FOS_Thread_SetTerminateFlag(thr, terminate_code) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	if(id == p->var.current_thr)                // if current thread is being terminated
 		FOS_System_GoToKernelMode(FOS__DISABLE);    // switch to kernel mode
@@ -676,7 +676,7 @@ fos_ret_t FOS_SetNoteId(fos_t *p, uint8_t id, fos_note_type_t type, uint32_t not
 	// get thread descriptor by identifier
 	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
 	if(thr == NULL)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	uint32_t x;
 	ENTER_CRITICAL(x);
@@ -767,7 +767,11 @@ user_desc_t FOS_GetThreadParentUd(fos_t *p)
 // is thread run
 fos_ret_t FOS_IsThreadAlive(fos_t *p, user_desc_t desc)
 {
-	return FOS_IsThreadRun(FOS_GetThreadDesc(p, FOS_GetThreadIdByUd(p, desc)));
+	fos_thread_t *thr = FOS_GetThreadDesc(p, FOS_GetThreadIdByUd(p, desc));
+	if(thr == NULL)
+		return FOS__ERR_PARAMETER;
+
+	return FOS_IsThreadRun(thr);
 }
 
 
@@ -868,12 +872,37 @@ fos_ret_t FOS_UnlockId(fos_t *p, uint8_t id, uint32_t lock)
 fos_ret_t FOS_Yield()
 {
 	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
-		return FOS__FAIL;
+		return FOS__ERR_ML;
 
 	FOS_System_GoToKernelMode(FOS__DISABLE);       // switch to kernel mode
 
 	return FOS__OK;
 }
+
+
+// set thread priority
+fos_ret_t FOS_SetThreadPriority(fos_t *p, uint8_t id, fos_pri_type_t pri_type, uint8_t priority)
+{
+	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
+	return FOS_Thread_SetThreadPriority(thr, pri_type, priority);
+}
+
+
+// get thread priority
+uint8_t FOS_GetThreadPriority(fos_t *p, uint8_t id, fos_pri_type_t pri_type)
+{
+	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
+	return FOS_Thread_GetThreadPriority(thr, pri_type);
+}
+
+
+// reset thread priority
+fos_ret_t FOS_ResetThreadPriority(fos_t *p, uint8_t id, fos_pri_type_t pri_type)
+{
+	fos_thread_t *thr = FOS_GetThreadDesc(p, id);
+	return FOS_Thread_ResetThreadPriority(thr, pri_type);
+}
+
 
 //************************************************
 
@@ -913,7 +942,7 @@ fos_ret_t FOS_SemBinaryDelete(fos_t *p, user_desc_t semb)
 	uint8_t id = FOS_GetObjectIdByUd(semb);
 	fos_semaphore_binary_t *ptr = FOS_GetSemaphoreBinaryDesc(p, id);
 	if(FOS_CheckSemaphoreBinaryUd(ptr, semb) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
 		return FOS__FAIL;
@@ -932,7 +961,7 @@ fos_ret_t FOS_SemBinaryTake(fos_t *p, user_desc_t semb, uint32_t timeout_ms, fos
 {
 	fos_semaphore_binary_t *ptr = FOS_GetSemaphoreBinaryDesc(p, FOS_GetObjectIdByUd(semb));
 	if(FOS_CheckSemaphoreBinaryUd(ptr, semb) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_SemaphoreBinary_Take(ptr, p->var.current_thr, timeout_ms, lock_flag);
 }
@@ -943,7 +972,7 @@ fos_ret_t FOS_SemBinaryGive(fos_t *p, user_desc_t semb)
 {
 	fos_semaphore_binary_t *ptr = FOS_GetSemaphoreBinaryDesc(p, FOS_GetObjectIdByUd(semb));
 	if(FOS_CheckSemaphoreBinaryUd(ptr, semb) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_SemaphoreBinary_Give(ptr);
 }
@@ -986,7 +1015,7 @@ fos_ret_t FOS_SemCntDelete(fos_t *p, user_desc_t semc)
 	uint8_t id = FOS_GetObjectIdByUd(semc);
 	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, id);
 	if(FOS_CheckSemaphoreCntUd(ptr, semc) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
 		return FOS__FAIL;
@@ -1005,7 +1034,7 @@ fos_ret_t FOS_SemCntTake(fos_t *p, user_desc_t semc, uint32_t timeout_ms, fos_sw
 {
 	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, FOS_GetObjectIdByUd(semc));
 	if(FOS_CheckSemaphoreCntUd(ptr, semc) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_SemaphoreCnt_Take(ptr, p->var.current_thr, timeout_ms, lock_flag);
 }
@@ -1016,10 +1045,22 @@ fos_ret_t FOS_SemCntGive(fos_t *p, user_desc_t semc)
 {
 	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, FOS_GetObjectIdByUd(semc));
 	if(FOS_CheckSemaphoreCntUd(ptr, semc) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_SemaphoreCnt_Give(ptr);
 }
+
+
+// release counting semaphore in blocking mode
+fos_ret_t FOS_SemCntBlockingModeGive(fos_t *p, user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	fos_semaphore_cnt_t *ptr = FOS_GetSemaphoreCntDesc(p, FOS_GetObjectIdByUd(semc));
+	if(FOS_CheckSemaphoreCntUd(ptr, semc) != FOS__OK)
+		return FOS__ERR_PARAMETER;
+
+	return FOS_SemaphoreCnt_GiveWithBlock(ptr, p->var.current_thr, timeout_ms, lock_flag);
+}
+
 
 //******************************************
 
@@ -1070,7 +1111,7 @@ fos_ret_t FOS_Queue32Delete(fos_t *p, user_desc_t que)
 	uint8_t id = FOS_GetObjectIdByUd(que);
 	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, id);
 	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
 		return FOS__FAIL;
@@ -1094,7 +1135,7 @@ fos_ret_t FOS_Queue32AskData(fos_t *p, user_desc_t que, uint32_t timeout_ms, fos
 {
 	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, FOS_GetObjectIdByUd(que));
 	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	uint8_t block_thr_id = FOS_SPECIAL_ID;
 	if(timeout_ms)
@@ -1110,7 +1151,7 @@ fos_ret_t FOS_Queue32ReadData(fos_t *p, user_desc_t que, uint32_t* data_ptr)
 {
 	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, FOS_GetObjectIdByUd(que));
 	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_Queue32_ReadData(ptr, data_ptr);
 }
@@ -1121,9 +1162,36 @@ fos_ret_t FOS_Queue32WriteData(fos_t *p, user_desc_t que, uint32_t data)
 {
 	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, FOS_GetObjectIdByUd(que));
 	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_Queue32_WriteData(ptr, data);
+}
+
+
+// ask space
+fos_ret_t FOS_Queue32AskSpace(fos_t *p, user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, FOS_GetObjectIdByUd(que));
+	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
+		return FOS__ERR_PARAMETER;
+
+	uint8_t block_thr_id = FOS_SPECIAL_ID;
+	if(timeout_ms)
+		block_thr_id = p->var.current_thr;
+
+	return FOS_Queue32_AskSpace(ptr, block_thr_id, timeout_ms, lock_flag);
+}
+
+
+// block mode write data
+// do call only after FOS_Queue32AskSpace
+fos_ret_t FOS_Queue32WriteDataBM(fos_t *p, user_desc_t que, uint32_t data)
+{
+	fos_queue32_t *ptr = FOS_GetQueue32Desc(p, FOS_GetObjectIdByUd(que));
+	if(FOS_CheckQueue32Ud(ptr, que) != FOS__OK)
+		return FOS__ERR_PARAMETER;
+
+	return FOS_Queue32_WriteDataBM(ptr, data);
 }
 
 //**********************************************
@@ -1175,7 +1243,7 @@ fos_ret_t FOS_MutexDelete(fos_t *p, user_desc_t mutex)
 	uint8_t id = FOS_GetObjectIdByUd(mutex);
 	fos_mutex_t *ptr = FOS_GetMutexDesc(p, id);
 	if(FOS_CheckMutexUd(ptr, mutex) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	if(Private_FOS_AddOjectToDelList(p, (uint32_t)ptr, FOS_KERNEL_HEAP_ID) != FOS__OK)
 		return FOS__FAIL;
@@ -1198,7 +1266,7 @@ fos_ret_t FOS_MutexTake(fos_t *p, user_desc_t mutex, uint32_t timeout_ms, fos_sw
 {
 	fos_mutex_t *ptr = FOS_GetMutexDesc(p, FOS_GetObjectIdByUd(mutex));
 	if(FOS_CheckMutexUd(ptr, mutex) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_Mutex_Take(ptr, p->var.current_thr, timeout_ms, lock_flag);
 }
@@ -1209,7 +1277,7 @@ fos_ret_t FOS_MutexSetOwner(fos_t *p, user_desc_t mutex)
 {
 	fos_mutex_t *ptr = FOS_GetMutexDesc(p, FOS_GetObjectIdByUd(mutex));
 	if(FOS_CheckMutexUd(ptr, mutex) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_Mutex_SetOwner(ptr, p->var.current_thr);
 }
@@ -1220,7 +1288,7 @@ fos_ret_t FOS_MutexGive(fos_t *p, user_desc_t mutex)
 {
 	fos_mutex_t *ptr = FOS_GetMutexDesc(p, FOS_GetObjectIdByUd(mutex));
 	if(FOS_CheckMutexUd(ptr, mutex) != FOS__OK)
-		return FOS__FAIL;
+		return FOS__ERR_PARAMETER;
 
 	return FOS_Mutex_Give(ptr, p->var.current_thr);
 }

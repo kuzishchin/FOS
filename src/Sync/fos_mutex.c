@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_mutex.c
  * @brief     Mutex. Source file.
- * @version   V1.1.03
- * @date      15.05.2026
+ * @version   V1.2.05
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -24,13 +24,13 @@
 #include "Sync/fos_mutex.h"
 #include <string.h>
 
-/*
+
 // заглушка на получение приоритета потока c id
 // реализация через функцию ядра
 // defined in the fos_kernel.c
-__weak uint8_t FOS_Mutex_GetThreadPriority(uint8_t thr_id)
+__weak uint8_t Kernel_FOS_GetThreadCurrPriorityById(uint8_t thr_id)
 {
-//	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 	return 0;
 }
 
@@ -38,33 +38,48 @@ __weak uint8_t FOS_Mutex_GetThreadPriority(uint8_t thr_id)
 // заглушка на установку приоритета потока с id
 // реализация через функцию ядра
 // defined in the fos_kernel.c
-__weak void FOS_Mutex_SetThreadPriority(uint8_t thr_id, uint8_t priority)
+__weak fos_ret_t Kernel_FOS_SetThreadCurrPriorityById(uint8_t thr_id, uint8_t priority)
 {
-//	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
 }
 
 
 // заглушка на сброс приоритета потока с id
 // реализация через функцию ядра
 // defined in the fos_kernel.c
-__weak void FOS_Mutex_ResetThreadPriority(uint8_t thr_id)
+__weak fos_ret_t Kernel_FOS_ResetThreadCurrPriorityById(uint8_t thr_id)
 {
-//	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
-}*/
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
 
 
 
 
 // инициализация
-void FOS_Mutex_Init(fos_mutex_t *p, fos_mutex_type_t type, uint8_t pcp_priority)
+void FOS_Mutex_Init(fos_mutex_t *p, uint8_t pcp_priority, char* name_ptr, uint32_t attr_bits)
 {
 	if(p == NULL)
 		return;
 
 	memset(p, 0, sizeof(fos_mutex_t));
-	p->type         = type;
 	p->pcp_priority = pcp_priority;
 	p->owner_thr_id = FOS_WRONG_THREAD_ID;
+	if(name_ptr)
+		strncpy(p->name, name_ptr, FOS_MUTEX_NAME_LEN - 1);
+
+	p->type = FOS_MUTEX_TYPE__SIMPLE;
+	if(attr_bits & FOS_MUTEX_PIP)
+		p->type = FOS_MUTEX_TYPE__PIP;
+	if(attr_bits & FOS_MUTEX_PCP)
+		p->type = FOS_MUTEX_TYPE__PCP;
+
+	if(attr_bits & FOS_MUTEX_RECURSIVE)
+		p->recursive_sw = FOS__ENABLE;
+
+	if(attr_bits & FOS_MUTEX_ROBUST)
+		p->robust_sw = FOS__ENABLE;
 }
 
 
@@ -73,9 +88,9 @@ void FOS_Mutex_DeInit(fos_mutex_t *p)
 {
 	if(p == NULL)
 		return;
-/*
+
 	if(p->owner_thr_id != FOS_WRONG_THREAD_ID)
-		FOS_Mutex_ResetThreadPriority(p->owner_thr_id);*/
+		Kernel_FOS_ResetThreadCurrPriorityById(p->owner_thr_id);
 }
 
 
@@ -109,12 +124,16 @@ fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms, fo
 	if((p == NULL) || (thr_id >= FOS_MAX_THR_CNT))
 		return FOS__FAIL;
 
-	if(thr_id == p->owner_thr_id)       // защита от повторного захвата тем же потоком
-		return FOS__FAIL;
+	if(thr_id == p->owner_thr_id)              // обработка повторного захвата тем же потоком
+	{
+		if(p->recursive_sw == FOS__ENABLE)     // если мьютекс рекурентный
+		{
+			p->recursive_cnt++;                // считаем число повторных взятий
+			return FOS__OK;
+		}else                                  // если мьютекс обычный
+			return FOS__ERR_RESOURCE;          // возвращаем ошибку
+	}
 
-//	if(timeout_ms == 0)
-//		return FOS__FAIL;
-/*
 	if(p->owner_thr_id != FOS_WRONG_THREAD_ID)
 	{
 		uint8_t thread_priority;
@@ -124,17 +143,17 @@ fos_ret_t FOS_Mutex_Take(fos_mutex_t *p, uint8_t thr_id, uint32_t timeout_ms, fo
 		break;
 
 		case FOS_MUTEX_TYPE__PIP:
-			thread_priority = FOS_Mutex_GetThreadPriority(thr_id);
-			if(FOS_Mutex_GetThreadPriority(p->owner_thr_id) > thread_priority)
-				FOS_Mutex_SetThreadPriority(p->owner_thr_id, thread_priority);
+			thread_priority = Kernel_FOS_GetThreadCurrPriorityById(thr_id);
+			if(Kernel_FOS_GetThreadCurrPriorityById(p->owner_thr_id) > thread_priority)
+				Kernel_FOS_SetThreadCurrPriorityById(p->owner_thr_id, thread_priority);
 		break;
 
 		case FOS_MUTEX_TYPE__PCP:
-			if(FOS_Mutex_GetThreadPriority(p->owner_thr_id) > p->pcp_priority)
-				FOS_Mutex_SetThreadPriority(p->owner_thr_id, p->pcp_priority);
+			if(Kernel_FOS_GetThreadCurrPriorityById(p->owner_thr_id) > p->pcp_priority)
+				Kernel_FOS_SetThreadCurrPriorityById(p->owner_thr_id, p->pcp_priority);
 		break;
 		}
-	}*/
+	}
 
 	return FOS_SemaphoreBinary_Take(p->semb_ptr, thr_id, timeout_ms, lock_flag);      // берем бинарный семафор
 }
@@ -148,11 +167,10 @@ fos_ret_t FOS_Mutex_SetOwner(fos_mutex_t *p, uint8_t thr_id)
 
 	/*
 	 * Если добролись сюда значит мьютекс был свободный
-	 * или произошел таймаут
+	 * но на всякий случай проверим условие ниже
 	 */
-/*
 	if(p->owner_thr_id != FOS_WRONG_THREAD_ID)
-		FOS_Mutex_ResetThreadPriority(p->owner_thr_id);*/
+		Kernel_FOS_ResetThreadCurrPriorityById(p->owner_thr_id);
 
 	p->owner_thr_id = thr_id;                               // устанавливаем нового владельца
 	return FOS__OK;
@@ -166,9 +184,15 @@ fos_ret_t FOS_Mutex_Give(fos_mutex_t *p, uint8_t thr_id)
 		return FOS__FAIL;
 
 	if(thr_id != p->owner_thr_id)      // проверяем что выдача осуществляется владельцем
-		return FOS__FAIL;
+		return FOS__ERR_RESOURCE;
 
-//	FOS_Mutex_ResetThreadPriority(p->owner_thr_id);
+	if(p->recursive_cnt)               // если счётчик повторных взятий не пуст
+	{
+		p->recursive_cnt--;            // уменьшаем его
+		return FOS__OK;                // и выходим без освобождения мьютекса
+	}
+
+	Kernel_FOS_ResetThreadCurrPriorityById(p->owner_thr_id);
 
 	p->owner_thr_id = FOS_WRONG_THREAD_ID;             // сброс владаельца
 	return FOS_SemaphoreBinary_Give(p->semb_ptr);      // выдаем бинарный семафор
@@ -184,15 +208,17 @@ fos_ret_t FOS_Mutex_UnlinkThread(fos_mutex_t *p, uint8_t thr_id)
 	/*
 	 * Вызывается при удадении потока с его thr_id
 	 */
-
 	if(thr_id == p->owner_thr_id){                         // если завершен поток захвативший мьютекс
-		p->owner_thr_id = FOS_WRONG_THREAD_ID;             // сброс владельца
-		return FOS_SemaphoreBinary_Give(p->semb_ptr);      // выдача
+		if(p->robust_sw == FOS__ENABLE)                    // если мьютекс робастный
+		{
+			p->owner_thr_id = FOS_WRONG_THREAD_ID;         // сброс владельца
+			return FOS_SemaphoreBinary_Give(p->semb_ptr);  // выдача
+		}
 	}else{                                                                 // если нет
 		return FOS_SemaphoreBinary_UnlinkThread(p->semb_ptr, thr_id);      // исключаем этот поток из очерди на получение если он там есть
 	}
 
-//	return FOS__FAIL;
+	return FOS__OK;
 }
 
 

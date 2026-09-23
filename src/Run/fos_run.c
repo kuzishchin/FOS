@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.c
  * @brief     OS start up functions. Source file.
- * @version   V1.0.07
- * @date      13.04.2026
+ * @version   V1.0.08
+ * @date      15.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -51,14 +51,17 @@ void RUN_FOS_InitAndRun()
 	FOS_Platform_MainTim_Disable();      // and instant timer pause
 
 	FOS_System_SetMainTimPeriod(FOS_SWITCH_CONTEXT_TIME_US);     // set switch context time
+
+#ifdef FOS_STAB_TIME_MS
 	SL_Delay(FOS_STAB_TIME_MS);                                  // stab time
+#endif
 
 	GATE_FOS_Init();                     // gate inititalization
-	Kernel_FOS_Init();                     // kernel variables initialization
+	Kernel_FOS_Init();                   // kernel variables initialization
 
 	USER_FOS_InitAndRun();               // user defined initialization
 
-	Kernel_FOS_Start();                    // OS start
+	Kernel_FOS_Start();                  // OS start
 
 #if FOS_DEBUL_LEVEL >= 3
 	Kernel_FOS_LogSysData("FOS is started", FOS_LOG_TYPE__INFO); // 14 symbols

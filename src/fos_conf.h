@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_conf.h
  * @brief     Configuration file of OS. Header file.
- * @version   V1.3.06
- * @date      27.04.2026
+ * @version   V1.3.11
+ * @date      22.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -29,6 +29,9 @@
 #define FOS_SEM_QUEUE_32_CNT   32          // maximum queue32 count
 #define FOS_MUTEX_CNT          32          // maximum mutex count
 #define FOS_FWRITER_CNT        32          // maximum writer objects count
+#define FOS_QUEUE_NAME_LEN     16          // queue name length
+#define FOS_SEM_NAME_LEN       16          // semaphore name length
+#define FOS_MUTEX_NAME_LEN     16          // mutex name length
 #define FOS_THR_NAME_LEN       16          // thread name length
 #define FOS_MAX_STR_ERR_LEN    32          // maximum length of error descriptive string
 #define FOS_MAX_OBJ_TO_DEL     32          // maximum length turn of objects to delete
@@ -57,7 +60,7 @@
 #define FOS_STACK_CHECK_PERIOD_MS  100     // stack overflow check period, ms. Comment this line to disable the stack watermark checking.
 #define FOS_HEAP_CHECK_PERIOD_MS   100     // heap check period, ms. Comment this line to disable the heap checking.
 
-#define FOS_STAB_TIME_MS           200     // stabilaze time (magic time for some BlackPill boards)
+#define FOS_STAB_TIME_MS           2       // stabilize time after starting MC, prevent data desynchronization when ICache and optimization are enabled (comment this line to disable delay)
 #define FOS_SWITCH_CONTEXT_TIME_US 1000    // OS switch context time, us
 
 #define FOS_DEBUL_LEVEL   3                // debug level

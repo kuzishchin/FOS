@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.c
  * @brief     Thread object. Source file.
- * @version   V1.3.02
- * @date      18.05.2026
+ * @version   V1.5.02
+ * @date      20.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -105,7 +105,10 @@ void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 //	if(p->var.mode != FOS__THREAD_NO_INIT)
 //		return;
 
-	strncpy(p->name, init->name_ptr, FOS_THR_NAME_LEN - 1);
+	if(init->name_ptr)
+		strncpy(p->name, init->name_ptr, FOS_THR_NAME_LEN - 1);
+	else
+		strncpy(p->name, "Def name\0", FOS_THR_NAME_LEN - 1);
 	memcpy(&p->cset, &init->cset, sizeof(fos_thread_cset_t));
 	memcpy(&p->set, &init->set, sizeof(fos_thread_set_t));
 	memset(&p->var, 0, sizeof(fos_thread_var_t));
@@ -119,6 +122,7 @@ void FOS_ThreadInit(fos_thread_t *p, fos_thread_init_t *init)
 
 	FOS_ThreadStackInit(p);
 
+	p->var.sync_pri_sw = FOS__ENABLE;
 	p->var.state = FOS__THREAD_SUSPEND;
 	p->var.mode  = FOS__THREAD_INIT;
 }
@@ -179,7 +183,7 @@ fos_ret_t FOS_Thread_SetRunFlag(fos_thread_t *p)
 
 	// запустить можно только зарегистрированный поток
 	if(p->var.mode != FOS__THREAD_READY_TO_RUN)
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	p->var.mode  = FOS__THREAD_RUN;
 	p->var.state = FOS__THREAD_READY;
@@ -198,7 +202,7 @@ fos_ret_t FOS_Thread_SetTerminateFlag(fos_thread_t *p, int32_t terminate_code)
 
 	// завершить можно только готовый к запуску или запущенный поток
 	if((v->mode != FOS__THREAD_READY_TO_RUN) && (v->mode != FOS__THREAD_RUN))
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	v->mode  = FOS__THREAD_TERMINATING;
 	v->state = FOS__THREAD_SUSPEND;
@@ -299,7 +303,7 @@ fos_ret_t FOS_IsThreadRun(fos_thread_t *p)
 	if(p->var.mode == FOS__THREAD_RUN)
 		return FOS__OK;
 
-	return FOS__FAIL;
+	return FOS__NOT_ALIVE;
 }
 
 
@@ -363,7 +367,7 @@ fos_ret_t FOS_Thread_AddArg(fos_thread_t *p, uint8_t* arg_ptr, uint32_t arg_len)
 		return FOS__FAIL;
 
 	if(p->var.heap_sw != FOS__ENABLE)
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	p->var.arg_ptr = arg_ptr;
 	p->var.arg_len = arg_len;
@@ -412,10 +416,10 @@ fos_ret_t FOS_Thread_SetNote(fos_thread_t *p, fos_note_type_t type, uint32_t not
 		return FOS__FAIL;
 
 	if(p->var.heap_sw != FOS__ENABLE)
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	if(p->var.note_ptr == NULL)
-		return FOS__FAIL;
+		return FOS__ERR_COND;
 
 	switch(type)
 	{
@@ -480,6 +484,100 @@ fos_ret_val_t* FOS_Thread_GetRValPtr(fos_thread_t *p)
 		return NULL;
 
 	return (fos_ret_val_t*)p->var.ret_val_ptr;
+}
+
+
+// set thread priority
+fos_ret_t FOS_Thread_SetThreadPriority(fos_thread_t *p, fos_pri_type_t pri_type, uint8_t priority)
+{
+	if(p == NULL)
+		return FOS__ERR_PARAMETER;
+
+	if(priority >= FOS_PRIORITY_CNT)
+		return FOS__ERR_PARAMETER;
+
+	if(p->var.mode != FOS__THREAD_RUN)
+		return FOS__ERR_RESOURCE;
+
+	switch(pri_type)
+	{
+	case FOS_PRI__CURR:
+		p->var.sync_pri_sw = FOS__DISABLE;
+		p->set.priority = priority;
+	break;
+
+	case FOS_PRI__BASE:
+		p->set.base_pri = priority;
+	break;
+
+	default:
+		return FOS__FAIL;
+	}
+
+	if(p->var.sync_pri_sw)
+	{
+		p->set.priority = p->set.base_pri;
+	}else{
+		if(p->set.priority > p->set.base_pri)
+			p->set.priority = p->set.base_pri;
+	}
+
+	return FOS__OK;
+}
+
+
+// get thread priority
+uint8_t FOS_Thread_GetThreadPriority(fos_thread_t *p, fos_pri_type_t pri_type)
+{
+	if(p == NULL)
+		return FOS_WRONG_PRIORITY;
+
+	switch(pri_type)
+	{
+	case FOS_PRI__CURR:
+		return p->set.priority;
+
+	case FOS_PRI__BASE:
+		return p->set.base_pri;
+
+	default:
+		return FOS_WRONG_PRIORITY;
+	}
+}
+
+
+// reset thread priority
+fos_ret_t FOS_Thread_ResetThreadPriority(fos_thread_t *p, fos_pri_type_t pri_type)
+{
+	if(p == NULL)
+		return FOS__ERR_PARAMETER;
+
+	if(p->var.mode != FOS__THREAD_RUN)
+		return FOS__ERR_RESOURCE;
+
+	switch(pri_type)
+	{
+	case FOS_PRI__CURR:
+		p->var.sync_pri_sw = FOS__ENABLE;
+	break;
+
+	case FOS_PRI__BASE:
+		p->set.base_pri = p->cset.priority_def;
+	break;
+
+	default:
+		return FOS__ERR_PARAMETER;
+	}
+
+	if(p->var.sync_pri_sw)
+	{
+		p->set.priority = p->set.base_pri;
+	}else{
+		if(p->set.priority > p->set.base_pri)
+			p->set.priority = p->set.base_pri;
+	}
+
+	return FOS__OK;
 }
 
 

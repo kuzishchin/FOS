@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_semb.h
  * @brief     Binary named strong semaphore. Header file.
- * @version   V1.3.03
- * @date      18.05.2026
+ * @version   V1.4.01
+ * @date      07.07.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -27,7 +27,7 @@
 #include "fos_types.h"
 
 // инициализация
-void FOS_SemaphoreBinary_Init(fos_semaphore_binary_t *p, fos_semb_state_t init_state);
+void FOS_SemaphoreBinary_Init(fos_semaphore_binary_t *p, fos_semb_state_t init_state, char* name_ptr);
 
 // установить пользовательский дескриптор
 fos_ret_t FOS_SemaphoreBinary_SetUserDesc(fos_semaphore_binary_t *p, user_desc_t user_desc);

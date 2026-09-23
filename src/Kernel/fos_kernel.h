@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_kernel.h
  * @brief     Kernel. Header file.
- * @version   V1.5.22
- * @date      18.05.2026
+ * @version   V1.6.12
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -67,7 +67,7 @@ fos_ret_t Kernel_FOS_IsThreadAlive(user_desc_t desc);
 fos_ret_t Kernel_FOS_Sleep(uint32_t time, fos_sw_t is_waiting);
 
 // create the binary semaphore
-user_desc_t Kernel_FOS_CreateSemBinary(fos_semb_state_t init_state);
+user_desc_t Kernel_FOS_CreateSemBinary(fos_semb_state_t init_state, fos_sem_attr_t *attr);
 
 // delete the binary semaphore with picked descriptor
 fos_ret_t Kernel_FOS_DeleteSemBinary(user_desc_t semb);
@@ -82,7 +82,7 @@ user_desc_t Kernel_FOS_GetThreadSembDesc(user_desc_t desc);
 void Kernel_FOS_ErrorSet(fos_err_t *err);
 
 // creat the counting semaphore
-user_desc_t Kernel_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
+user_desc_t Kernel_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt, fos_sem_attr_t *attr);
 
 // delete the counting semaphore
 fos_ret_t Kernel_FOS_DeleteSemCnt(user_desc_t semc);
@@ -91,7 +91,7 @@ fos_ret_t Kernel_FOS_DeleteSemCnt(user_desc_t semc);
 fos_ret_t Kernel_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // create the queue for uint32_t
-user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode);
+user_desc_t Kernel_FOS_CreateQueue32(uint16_t size, fos_queue_attr_t *attr);
 
 // delete the queue32
 fos_ret_t Kernel_FOS_DeleteQueue32(user_desc_t que);
@@ -103,6 +103,13 @@ fos_ret_t Kernel_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms, fos_sw
 // one must ask data before read every times
 fos_ret_t Kernel_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr);
 
+// ask space
+fos_ret_t Kernel_FOS_Queue32AskSpace(user_desc_t que, uint32_t timeout_ms, fos_sw_t *lock_flag);
+
+// block mode write data
+// do call only after Kernel_FOS_Queue32AskSpace
+fos_ret_t Kernel_FOS_Queue32WriteDataBM(user_desc_t que, uint32_t data);
+
 // get the system stack debug info
 fos_thread_dbg_t* Kernel_FOS_GetSysStackDbgInfo();
 
@@ -110,7 +117,7 @@ fos_thread_dbg_t* Kernel_FOS_GetSysStackDbgInfo();
 fos_scheduler_dbg_t* Kernel_FOS_GetSchedulerDbgInfo();
 
 // create the mutex
-user_desc_t Kernel_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority);
+user_desc_t Kernel_FOS_CreateMutex(fos_mutex_attr_t *attr);
 
 // delete the mutex
 fos_ret_t Kernel_FOS_DeleteMutex(user_desc_t mutex);
@@ -151,6 +158,15 @@ fos_ret_t Kernel_FOS_LogSysData2(char *str1, char *str2, fos_log_type_t type);
 // log system data
 fos_ret_t Kernel_FOS_LogSysData3(char *str1, char *str2, uint32_t val, fos_log_type_t type);
 
+// set thread priority
+fos_ret_t Kernel_FOS_SetThreadBasePriority(user_desc_t ud, uint8_t priority);
+
+// get thread priority
+uint8_t Kernel_FOS_GetThreadBasePriority(user_desc_t ud);
+
+// reset thread priority
+fos_ret_t Kernel_FOS_ResetThreadBasePriority(user_desc_t ud);
+
 
 /*
  * **************************************************************
@@ -158,7 +174,7 @@ fos_ret_t Kernel_FOS_LogSysData3(char *str1, char *str2, uint32_t val, fos_log_t
 
 // get FOS version
 // used via weak callback in the fos_api.c
-char* Kernel_FOS_GetVersion();
+const char* Kernel_FOS_GetVersion();
 
 // get log writer pointer
 // used via weak callback in the fos_api.c
@@ -175,6 +191,10 @@ fos_ret_t Kernel_FOS_SemBinaryGive(user_desc_t semb);
 // give the counting semaphore
 // used via weak callback in the fos_api.c
 fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semc);
+
+// release counting semaphore in blocking mode
+// used via weak callback in the fos_system.c
+fos_ret_t Kernel_FOS_SemCntBlockingModeGive(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag);
 
 // write data to queue32
 // used via weak callback in the fos_api.c

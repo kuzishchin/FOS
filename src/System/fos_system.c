@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.c
  * @brief     System calls. Source file.
- * @version   V1.4.07
- * @date      08.06.2026
+ * @version   V1.5.06
+ * @date      25.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -24,6 +24,7 @@
 #include "System/fos_system.h"
 #include "System/fos_svcall.h"
 #include "System/fos_svc_id.h"
+#include "System/fos_context.h"
 
 static fos_ret_t Private_SYS_CheckError(uint32_t *buf);
 
@@ -61,6 +62,16 @@ __weak fos_ret_t Kernel_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms,
 // kernel function is used, not indicated in the header file
 // defined in the fos_kernel.c
 __weak fos_ret_t Kernel_FOS_SemCntGive(user_desc_t semb)
+{
+	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
+	return FOS__FAIL;
+}
+
+
+// prototype of kernel function
+// kernel function is used, not indicated in the header file
+// defined in the fos_kernel.c
+__weak fos_ret_t Kernel_FOS_SemCntBlockingModeGive(user_desc_t semc, uint32_t timeout_ms, fos_sw_t *lock_flag)
 {
 	FOS_INTERNAL_ERROR_OF_THE_CALLBACK();
 	return FOS__FAIL;
@@ -122,7 +133,7 @@ __weak fos_ret_t Kernel_FOS_LogUserData(char *str, fos_log_type_t type)
 fos_ret_t SYS_FOS_Yield()
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[1];
 
@@ -143,7 +154,7 @@ fos_ret_t SYS_FOS_SemBinaryTake(user_desc_t semb, uint32_t timeout_ms)
 	if(__get_IPSR() != 0)
 	{
 		if(timeout_ms)
-			return FOS__FAIL;
+			return FOS__ERR_RESOURCE;
 		return Kernel_FOS_SemBinaryTake(semb, timeout_ms, (fos_sw_t*)&buf[3]);
 	}
 
@@ -199,13 +210,14 @@ user_desc_t SYS_FOS_CreateThread(fos_thread_user_init_t *user_init)
 
 
 // создать бинарный семафор
-user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state)
+user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state, fos_sem_attr_t* attr)
 {
 	if(__get_IPSR() != 0)
 		return FOS_WRONG_USER_DESC;
 
-	uint32_t buf[2];
+	uint32_t buf[3];
 	buf[1] = (uint32_t)init_state;
+	buf[2] = (uint32_t)attr;
 
 	system_call(FOS_SYSCALL_FOS_CREATE_SEMB, buf);
 
@@ -217,7 +229,7 @@ user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state)
 fos_ret_t SYS_FOS_DeleteSemBinary(user_desc_t semb)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)semb;
@@ -232,7 +244,7 @@ fos_ret_t SYS_FOS_DeleteSemBinary(user_desc_t semb)
 fos_ret_t SYS_FOS_RunDesc(user_desc_t desc)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)desc;
@@ -247,7 +259,7 @@ fos_ret_t SYS_FOS_RunDesc(user_desc_t desc)
 fos_ret_t SYS_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[3];
 	buf[1] = (uint32_t)desc;
@@ -263,7 +275,7 @@ fos_ret_t SYS_FOS_TerminateDesc(user_desc_t desc, int32_t terminate_code)
 fos_ret_t SYS_FOS_HardFaultCall()
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	system_call(FOS_HARD_FAULT_CALL_ID, NULL);
 
@@ -275,7 +287,7 @@ fos_ret_t SYS_FOS_HardFaultCall()
 fos_ret_t SYS_File_Mount(uint8_t dev_num)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[1];
 	buf[0] = (uint32_t)dev_num;
@@ -290,7 +302,7 @@ fos_ret_t SYS_File_Mount(uint8_t dev_num)
 fos_ret_t SYS_File_Unmount(uint8_t dev_num)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[1];
 	buf[0] = (uint32_t)dev_num;
@@ -312,11 +324,32 @@ fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms)
 	if(__get_IPSR() != 0)
 	{
 		if(timeout_ms)
-			return FOS__FAIL;
+			return FOS__ERR_RESOURCE;
 		return Kernel_FOS_SemCntTake(semc, timeout_ms, (fos_sw_t*)&buf[3]);
 	}
 
 	system_call(FOS_SYSCALL_FOS_SEMC_TAKE, buf);
+
+	return Private_SYS_CheckError(buf);
+}
+
+
+// дать счётный семафор в блокирующем режиме
+fos_ret_t SYS_FOS_SemCntBlockingModeGive(user_desc_t semc, uint32_t timeout_ms)
+{
+	uint32_t buf[5];
+	buf[1] = (uint32_t)semc;
+	buf[2] = (uint32_t)timeout_ms;
+	buf[3] = (fos_sw_t)FOS__DISABLE;   // the value by default
+
+	if(__get_IPSR() != 0)
+	{
+		if(timeout_ms)
+			return FOS__ERR_RESOURCE;
+		return Kernel_FOS_SemCntBlockingModeGive(semc, timeout_ms, (fos_sw_t*)&buf[3]);
+	}
+
+	system_call(FOS_SYSCALL_FOS_SEMC_BM_GIVE, buf);
 
 	return Private_SYS_CheckError(buf);
 }
@@ -338,14 +371,15 @@ fos_ret_t SYS_FOS_SemCntGive(user_desc_t semc)
 
 
 // создать счётный семафор
-user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt)
+user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt, fos_sem_attr_t* attr)
 {
 	if(__get_IPSR() != 0)
 		return FOS_WRONG_USER_DESC;
 
-	uint32_t buf[3];
+	uint32_t buf[4];
 	buf[1] = (uint32_t)max_cnt;
 	buf[2] = (uint32_t)init_cnt;
+	buf[3] = (uint32_t)attr;
 
 	system_call(FOS_SYSCALL_FOS_CREATE_SEMC, buf);
 
@@ -357,7 +391,7 @@ user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt)
 fos_ret_t SYS_FOS_DeleteSemCnt(user_desc_t semc)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)semc;
@@ -369,14 +403,14 @@ fos_ret_t SYS_FOS_DeleteSemCnt(user_desc_t semc)
 
 
 // create queue32
-user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode)
+user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_attr_t *attr)
 {
 	if(__get_IPSR() != 0)
 		return FOS_WRONG_USER_DESC;
 
 	uint32_t buf[3];
 	buf[1] = (uint32_t)size;
-	buf[2] = (uint32_t)mode;
+	buf[2] = (uint32_t)attr;
 
 	system_call(FOS_SYSCALL_FOS_QUEUE_32_CREATE, buf);
 
@@ -388,7 +422,7 @@ user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode)
 fos_ret_t SYS_FOS_DeleteQueue32(user_desc_t que)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)que;
@@ -410,7 +444,7 @@ fos_ret_t SYS_FOS_Queue32AskData(user_desc_t que, uint32_t timeout_ms)
 	if(__get_IPSR() != 0)
 	{
 		if(timeout_ms)
-			return FOS__FAIL;
+			return FOS__ERR_RESOURCE;
 		return Kernel_FOS_Queue32AskData(que, timeout_ms, (fos_sw_t*)&buf[3]);
 	}
 
@@ -456,11 +490,60 @@ fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
 }
 
 
+// ask space from queue32
+fos_ret_t SYS_FOS_Queue32AskSpace(user_desc_t que, uint32_t timeout_ms)
+{
+	uint32_t buf[5];
+	buf[1] = (uint32_t)que;
+	buf[2] = (uint32_t)timeout_ms;
+	buf[3] = (fos_sw_t)FOS__DISABLE;   // the value by default
+
+	if(__get_IPSR() != 0)              // into IRQ it is no needed to call any function
+	{
+		if(timeout_ms)                 // if into IRQ and timeout != 0
+			return FOS__ERR_RESOURCE;  // return error
+		return FOS__OK;                // if into IRQ and timeout == 0, return OK
+	}
+
+	// do the same checks into the main loop
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+	{
+		if(timeout_ms)
+			return FOS__ERR_RESOURCE;
+		return FOS__OK;
+	}
+
+	system_call(FOS_SYSCALL_FOS_QUEUE_32_ASK_SPACE, buf);
+
+	return Private_SYS_CheckError(buf);
+}
+
+
+// write data to queue32
+// do call after SYS_FOS_Queue32AskSpace
+fos_ret_t SYS_FOS_Queue32WriteDataBM(user_desc_t que, uint32_t data)
+{
+	if(__get_IPSR() != 0)
+		return Kernel_FOS_Queue32WriteData(que, data);        // into IRQ we can use non block mode write function
+
+	uint32_t buf[3];
+	buf[1] = (uint32_t)que;
+	buf[2] = (uint32_t)data;
+
+	if(FOS_System_GetWorkMode() != FOS__USER_WORK_MODE)
+		system_call(FOS_SYSCALL_FOS_QUEUE_32_WRITE, buf);     // into the mail loop we use non block mode write function via syscall
+	else
+		system_call(FOS_SYSCALL_FOS_QUEUE_32_WRITE_BM, buf);  // into thread mode we use the block mode write function via syscall
+
+	return (fos_ret_t)buf[0];
+}
+
+
 // is the thhread alive
 fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)desc;
@@ -479,7 +562,7 @@ fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc)
 fos_ret_t SYS_FOS_Sleep(uint32_t time)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[4];         // buf[3] - тут не ипользуется но под него обязательнор нужно выделять место
 	buf[1] = time;
@@ -498,7 +581,7 @@ fos_ret_t SYS_FOS_Sleep(uint32_t time)
 fos_ret_t SYS_FOS_ErrorSet(fos_err_t *err)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[1];
 	buf[0] = (uint32_t)err;
@@ -515,7 +598,7 @@ fos_ret_t SYS_FOS_ErrorSet(fos_err_t *err)
 fos_ret_t SYS_FOS_Terminate(int32_t terminate_code)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)terminate_code;
@@ -591,13 +674,13 @@ user_desc_t SYS_FOS_GetCurrentThreadUd()
 
 
 // create the mutex
-user_desc_t SYS_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority)
+user_desc_t SYS_FOS_CreateMutex(fos_mutex_attr_t* attr)
 {
 	if(__get_IPSR() != 0)
 		return FOS_WRONG_USER_DESC;
 
 	uint32_t buf[2];
-	buf[1] = ((uint32_t)type) | ((uint32_t)pcp_priority) << 8;
+	buf[1] = (uint32_t)attr;
 
 	system_call(FOS_SYSCALL_FOS_CREATE_MUTEX, buf);
 
@@ -609,7 +692,7 @@ user_desc_t SYS_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority)
 fos_ret_t SYS_FOS_DeleteMutex(user_desc_t mutex)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)mutex;
@@ -624,7 +707,7 @@ fos_ret_t SYS_FOS_DeleteMutex(user_desc_t mutex)
 fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[5];
 	buf[1] = (uint32_t)mutex;
@@ -641,7 +724,7 @@ fos_ret_t SYS_FOS_MutexTake(user_desc_t mutex, uint32_t timeout_ms)
 fos_ret_t SYS_FOS_MutexSetOwner(user_desc_t mutex)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)mutex;
@@ -656,7 +739,7 @@ fos_ret_t SYS_FOS_MutexSetOwner(user_desc_t mutex)
 fos_ret_t SYS_FOS_MutexGive(user_desc_t mutex)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)mutex;
@@ -686,7 +769,7 @@ void* SYS_FOS_LocalAlloc(uint32_t size_bytes)
 fos_ret_t SYS_FOS_LocalFree(void* ptr)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[2];
 	buf[1] = (uint32_t)ptr;
@@ -701,7 +784,7 @@ fos_ret_t SYS_FOS_LocalFree(void* ptr)
 fos_ret_t SYS_FOS_RunDescWithArg(user_desc_t desc, uint8_t* arg_ptr, uint32_t arg_len)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[4];
 	buf[1] = (uint32_t)desc;
@@ -749,7 +832,7 @@ fos_thr_note_t* SYS_FOS_GetThreadNotePtr()
 fos_ret_t SYS_FOS_Wait(uint32_t time)
 {
 	if(__get_IPSR() != 0)
-		return FOS__FAIL;
+		return FOS__ERR_ISR;
 
 	uint32_t buf[4];
 	buf[1] = time;
@@ -759,7 +842,7 @@ fos_ret_t SYS_FOS_Wait(uint32_t time)
 
 	fos_ret_t ret = (fos_ret_t)buf[0];
 	if(ret != FOS__OK)
-		return FOS__FAIL;
+		return ret;
 
 	fos_thr_note_t* note_ptr = (fos_thr_note_t*)buf[3];
 	if(note_ptr == NULL)
@@ -769,7 +852,7 @@ fos_ret_t SYS_FOS_Wait(uint32_t time)
 
 	if(note_ptr->stat)
 		return FOS__OK;
-	return FOS__FAIL;
+	return FOS__ERR_TIMEOUT;
 }
 
 
@@ -789,12 +872,59 @@ fos_ret_t SYS_FOS_LogData(char *str, fos_log_type_t type)
 }
 
 
+// get thread priority
+uint8_t SYS_FOS_GetThreadPriority(user_desc_t ud)
+{
+	if(__get_IPSR() != 0)
+		return FOS_WRONG_PRIORITY;
+
+	uint32_t buf[2];
+	buf[1] = (uint32_t)ud;
+
+	system_call(FOS_SYSCALL_FOS_THREAD_GET_PR, buf);
+
+	return (uint8_t)buf[0];
+}
+
+
+// set thread priority
+fos_ret_t SYS_FOS_SetThreadPriority(user_desc_t ud, uint8_t priority)
+{
+	if(__get_IPSR() != 0)
+		return FOS__ERR_ISR;
+
+	uint32_t buf[3];
+	buf[1] = (uint32_t)ud;
+	buf[2] = (uint32_t)priority;
+
+	system_call(FOS_SYSCALL_FOS_THREAD_SET_PR, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+// reset thread priority
+fos_ret_t SYS_FOS_ResetThreadPriority(user_desc_t ud)
+{
+	if(__get_IPSR() != 0)
+		return FOS__ERR_ISR;
+
+	uint32_t buf[2];
+	buf[1] = (uint32_t)ud;
+
+	system_call(FOS_SYSCALL_FOS_THREAD_RESET_PR, buf);
+
+	return (fos_ret_t)buf[0];
+}
+
+
+
 static fos_ret_t Private_SYS_CheckError(uint32_t *buf)
 {
 	// check ret status: if FOS__FAIL, then error is occurred and thread has not been blocked
 	fos_ret_t ret = (fos_ret_t)buf[0];
 	if(ret != FOS__OK)
-		return FOS__FAIL;
+		return ret;
 
 	// if got here, no error is occurred
 	// check thread blocking status: if FOS__DISABLE, then thread has not been blocked
@@ -813,7 +943,7 @@ static fos_ret_t Private_SYS_CheckError(uint32_t *buf)
 	// check timeout condition
 	if(rv_ptr->timeout_flag == FOS__DISABLE)
 		return FOS__OK;
-	return FOS__FAIL;
+	return FOS__ERR_TIMEOUT;
 }
 
 

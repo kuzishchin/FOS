@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_svcall.h
  * @brief     Low level functional for system calls. Header file.
- * @version   V1.0.05
- * @date      06.02.2026
+ * @version   V1.0.06
+ * @date      25.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

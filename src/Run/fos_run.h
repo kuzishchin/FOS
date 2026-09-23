@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_run.h
  * @brief     OS start up functions. Header file.
- * @version   V1.0.07
- * @date      13.04.2026
+ * @version   V1.0.08
+ * @date      15.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.

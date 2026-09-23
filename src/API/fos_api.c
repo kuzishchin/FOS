@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_api.c
  * @brief     API of OS for user applications. Source file.
- * @version   V1.5.05
- * @date      08.06.2026
+ * @version   V1.5.12
+ * @date      18.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -571,6 +571,51 @@ uint8_t API_FOS_GetWaitingStatus(fos_thr_note_t* p)
 	return p->stat;
 }
 
+/*
+ * 2.5 Thread priority API
+ */
+
+/**
+ * 2.5.1 Get thread priority
+ * Thread-safe, call from the thread or from the main loop
+ * ud - user descriptor of the thread which priority is returned
+ * Return the thread priority
+ *
+ * Actual from v1.0.8
+ */
+uint8_t API_FOS_GetThreadPriority(user_desc_t ud)
+{
+	return SYS_FOS_GetThreadPriority(ud);
+}
+
+
+/**
+ * 2.5.2 Set thread priority
+ * Thread-safe, call from the thread or from the main loop
+ * ud       - user descriptor of the thread which priority is set
+ * priority - priority is to set
+ * Returns execution status
+ *
+ * Actual from v1.0.8
+ */
+fos_ret_t API_FOS_SetThreadPriority(user_desc_t ud, uint8_t priority)
+{
+	return SYS_FOS_SetThreadPriority(ud, priority);
+}
+
+/**
+ * 2.5.3 Reset thread priority
+ * Thread-safe, call from the thread or from the main loop
+ * ud - user descriptor of the thread which priority is reset
+ * Reset thread priority to value default value
+ *
+ * Actual from v1.0.8
+ */
+fos_ret_t API_FOS_ResetThreadPriority(user_desc_t ud)
+{
+	return SYS_FOS_ResetThreadPriority(ud);
+}
+
 
 /*
  * 3. Sync API
@@ -581,7 +626,7 @@ uint8_t API_FOS_GetWaitingStatus(fos_thr_note_t* p)
  */
 
 /*
- * 3.1.1 Create a binary semaphore
+ * 3.1.1a Create a binary semaphore
  * Thread-safe, call from the thread or from the main loop
  * init_state - initial state of the semaphore
  * Returns the user descriptor of created object or 'FOS_WRONG_USER_DESC' in case of an error
@@ -590,7 +635,22 @@ uint8_t API_FOS_GetWaitingStatus(fos_thr_note_t* p)
  */
 user_desc_t API_FOS_CreateSemBinary(fos_semb_state_t init_state)
 {
-	return SYS_FOS_CreateSemBinary(init_state);
+	return SYS_FOS_CreateSemBinary(init_state, NULL);
+}
+
+
+/*
+ * 3.1.1b Create a binary semaphore (extended)
+ * Thread-safe, call from the thread or from the main loop
+ * init_state - initial state of the semaphore
+ * attr       - pointer to the attributes (if NULL, then no attributes is applied)
+ * Returns the user descriptor of created object or 'FOS_WRONG_USER_DESC' in case of an error
+ *
+ * Actual from v1.0.8
+ */
+user_desc_t API_FOS_CreateSemBinaryExt(fos_semb_state_t init_state, fos_sem_attr_t* attr)
+{
+	return SYS_FOS_CreateSemBinary(init_state, attr);
 }
 
 
@@ -691,7 +751,7 @@ fos_ret_t API_FOS_SemBinaryGiveFromISR(user_desc_t semb)
  */
 
 /*
- * 3.2.1 Create a counting semaphore
+ * 3.2.1a Create a counting semaphore
  * Thread-safe, call from the thread or from the main loop
  * max_cnt  - max count
  * init_cnt - initial state of the semaphore (if init_cnt > max_cnt Then init_cnt = max_cnt)
@@ -701,7 +761,23 @@ fos_ret_t API_FOS_SemBinaryGiveFromISR(user_desc_t semb)
  */
 user_desc_t API_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt)
 {
-	return SYS_FOS_CreateSemCnt(max_cnt, init_cnt);
+	return SYS_FOS_CreateSemCnt(max_cnt, init_cnt, NULL);
+}
+
+
+/*
+ * 3.2.1b Create a counting semaphore (extended)
+ * Thread-safe, call from the thread or from the main loop
+ * max_cnt  - max count
+ * init_cnt - initial state of the semaphore (if init_cnt > max_cnt Then init_cnt = max_cnt)
+ * attr     - pointer to the attributes (if NULL, then no attributes is applied)
+ * Returns the user descriptor of created object or 'FOS_WRONG_USER_DESC' in case of an error
+ *
+ * Actual from v1.0.8
+ */
+user_desc_t API_FOS_CreateSemCntExt(uint32_t max_cnt, uint32_t init_cnt, fos_sem_attr_t* attr)
+{
+	return SYS_FOS_CreateSemCnt(max_cnt, init_cnt, attr);
 }
 
 
@@ -768,7 +844,7 @@ fos_ret_t API_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms)
 
 
 /*
- * 3.2.5 Release counting semaphore
+ * 3.2.5a Release counting semaphore
  * Thread-safe, call from the thread, from the main loop and the ISR
  * semc - binary semaphore user descriptor
  * Returns execution status
@@ -779,6 +855,22 @@ fos_ret_t API_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms)
 fos_ret_t API_FOS_SemCntGive(user_desc_t semc)
 {
 	return SYS_FOS_SemCntGive(semc);
+}
+
+
+/*
+ * 3.2.5b Release counting semaphore in blocking mode
+ * If the thread try to give almost released semaphore, it leads to block the thread
+ * Thread-safe, call from the thread, from the main loop and the ISR
+ * semc - binary semaphore user descriptor
+ * timeout_ms - timeout in milliseconds, if 'FOS_INF_TIME' - infinite, no timeout, if '0' - no blocking mode
+ * Returns execution status
+ *
+ * Actual from v1.0.8
+ */
+fos_ret_t API_FOS_SemCntBMGive(user_desc_t semc, uint32_t timeout_ms)
+{
+	return SYS_FOS_SemCntBlockingModeGive(semc, timeout_ms);
 }
 
 
@@ -827,7 +919,7 @@ user_desc_t API_FOS_CreateMutex(uint32_t timeout_ms)
  */
 user_desc_t API_FOS_CreateMutex(fos_mutex_attr_t *attr)
 {
-	return SYS_FOS_CreateMutex(FOS_MUTEX_TYPE__SIMPLE, 0xFF);
+	return SYS_FOS_CreateMutex(attr);
 }
 
 
@@ -970,10 +1062,7 @@ user_desc_t API_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode, uint32_t
  */
 user_desc_t API_FOS_CreateQueue32(uint16_t size, fos_queue_attr_t *attr)
 {
-	if(attr)
-		return SYS_FOS_CreateQueue32(size, attr->mode);
-	else
-		return SYS_FOS_CreateQueue32(size, FOS_QUEUE_MODE__POLL_AND_BLOCK);
+	return SYS_FOS_CreateQueue32(size, attr);
 }
 
 
@@ -1035,7 +1124,7 @@ fos_ret_t API_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr, uint32_t 
 
 
 /*
- * 4.1.4 Write data to a queue32 for uint32_t data
+ * 4.1.4a Write data to a queue32 for uint32_t data
  * Thread-safe, call from the thread, from the main loop and the ISR
  * que - a queue32
  * data - data do write in the queue
@@ -1047,6 +1136,26 @@ fos_ret_t API_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr, uint32_t 
 fos_ret_t API_FOS_Queue32WriteData(user_desc_t que, uint32_t data)
 {
 	return SYS_FOS_Queue32WriteData(que, data);
+}
+
+
+/*
+ * 4.1.4b Block mode write data to a queue32 for uint32_t data
+ * If the thread try to write into a full queue, it leads to block the thread
+ * Thread-safe, call from the thread, from the main loop and the ISR
+ * que - a queue32
+ * data - data do write in the queue
+ * timeout_ms - timeout im ms. If equal '0' then no blocking mode, if equal 'FOS_INF_TIME' then no timeout mode
+ * Returns execution status
+ *
+ * Actual from v1.0.8
+ */
+fos_ret_t API_FOS_Queue32WriteDataBM(user_desc_t que, uint32_t data, uint32_t timeout_ms)
+{
+	fos_ret_t ret = SYS_FOS_Queue32AskSpace(que, timeout_ms);
+	if(ret != FOS__OK)
+		return ret;
+	return SYS_FOS_Queue32WriteDataBM(que, data);
 }
 
 

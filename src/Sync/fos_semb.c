@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_semb.c
  * @brief     Binary named strong semaphore. Source file.
- * @version   V1.3.03
- * @date      18.05.2026
+ * @version   V1.4.01
+ * @date      07.07.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,13 +28,15 @@
 
 
 // инициализация
-void FOS_SemaphoreBinary_Init(fos_semaphore_binary_t *p, fos_semb_state_t init_state)
+void FOS_SemaphoreBinary_Init(fos_semaphore_binary_t *p, fos_semb_state_t init_state, char* name_ptr)
 {
 	if(p == NULL)
 		return;
 
 	memset(p, 0, sizeof(fos_semaphore_binary_t));
 	p->state = init_state;
+	if(name_ptr)
+		strncpy(p->name, name_ptr, FOS_SEM_NAME_LEN - 1);
 	FOS_Lock_Init(&p->fos_lock);
 }
 
@@ -93,7 +95,7 @@ fos_ret_t FOS_SemaphoreBinary_Give(fos_semaphore_binary_t *p)
 	switch(p->state)
 	{
 	case FOS_SEMB_STATE__UNLOCK:                            // если семафор был разблокирован
-                                                            // ничего не делаем
+		ret = FOS__ERR_RESOURCE;                            // возвращаем ошибку выдачи
 	break;
 
 	case FOS_SEMB_STATE__LOCK:                              // если семафор был заблокирован

@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_thread.h
  * @brief     Thread object. Header file.
- * @version   V1.3.02
- * @date      18.05.2026
+ * @version   V1.5.02
+ * @date      20.09.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -25,6 +25,13 @@
 
 #include "fos_types.h"
 
+// the thread priority type
+typedef enum
+{
+	FOS_PRI__CURR = 0x00,
+	FOS_PRI__BASE,
+
+} fos_pri_type_t;
 
 typedef void (*stack_err_cbk_t)(user_desc_t user_desc);  // прототип функции ошибки стека
 
@@ -65,6 +72,7 @@ typedef struct
 	volatile fos_thr_note_t* note_ptr;   // thread note pointer
 	volatile fos_ret_val_t* ret_val_ptr; // returned value poiner
 	volatile fos_sw_t signal_sw;         // thread is waiting for the note to wake up
+	volatile fos_sw_t sync_pri_sw;       // sync priotiry
 
 } fos_thread_var_t;
 
@@ -81,6 +89,24 @@ typedef struct
 	fos_thread_dbg_t  dbg;   // отладка
 
 } fos_thread_t;
+
+
+// контрольный блок
+typedef struct
+{
+	fos_thread_t           thr;
+	fos_semaphore_binary_t sem;
+
+} fos_thread_cb_t;
+
+
+// системная часть кучи потока
+typedef struct
+{
+	fos_thr_note_t note;
+	fos_ret_val_t  ret_val;
+
+} fos_thread_sys_mem_t;
 
 
 typedef fos_thread_t* fos_thread_ptr;
@@ -148,6 +174,15 @@ fos_ret_t FOS_Thread_AddRValPtr(fos_thread_t *p, fos_ret_val_t *ret_val_ptr);
 
 // get returned value pointer
 fos_ret_val_t* FOS_Thread_GetRValPtr(fos_thread_t *p);
+
+// set thread priority
+fos_ret_t FOS_Thread_SetThreadPriority(fos_thread_t *p, fos_pri_type_t pri_type, uint8_t priority);
+
+// get thread priority
+uint8_t FOS_Thread_GetThreadPriority(fos_thread_t *p, fos_pri_type_t pri_type);
+
+// reset thread priority
+fos_ret_t FOS_Thread_ResetThreadPriority(fos_thread_t *p, fos_pri_type_t pri_type);
 
 
 

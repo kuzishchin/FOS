@@ -6,10 +6,10 @@ Current version features support for ARM Cortex-M4 and Cortex-M7 cores.
 
 ## Key features
 * FOS uses hardware PSP for core stack and threads stack. So thread stack does`n store context in a case of interrupts that decrease necessary thread stack size.
-* FOS works int hte main loop and does`t block it. So it is easy to add FOS to already existing project.
+* FOS works into the main loop and does`t block it. So it is easy to add FOS to already existing project.
 * FOS can use extremely low RAM and FLASH down to 16 kbytes code and 16 kbytes data.
 * To create a thread in is needed to call only one function without preliminary set of the compilator.
-* FOS support statically allocated rum by compiler and automatically distributes it between system objects and threads memory.
+* FOS support statically allocated ram by compiler and automatically distributes it between system objects and threads memory.
 * Memory for system objects are separated from threads memory
 * All the threads have its own stack and local heap protected from the leak.
 * All OS memory for threads and system objects are protected by CRC
@@ -17,6 +17,7 @@ Current version features support for ARM Cortex-M4 and Cortex-M7 cores.
 * Interaction between threads and OS is supported by API via protected system calls.
 * FOS support thread synchronization by: strong binary semaphores, strong counting semaphores, mutexes, critical code sections.
 * FOS support protected data transferring via: thread notes, queues.
+* Mutex supports booth Priority Inheritance Protocol (PIP) and Priority Ceiling Protocol (PCP) modes. Also mutex supports recursive and robust modes.
 
 ## OS supports
 * ARM Cortex-M4 with FPU

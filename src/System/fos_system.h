@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_system.h
  * @brief     System calls. Header file.
- * @version   V1.4.07
- * @date      08.06.2026
+ * @version   V1.5.06
+ * @date      25.08.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -44,7 +44,7 @@ user_desc_t SYS_FOS_GetThreadSembDesc(user_desc_t desc);
 user_desc_t SYS_FOS_CreateThread(fos_thread_user_init_t *user_init);
 
 // создать бинарный семафор
-user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state);
+user_desc_t SYS_FOS_CreateSemBinary(fos_semb_state_t init_state, fos_sem_attr_t* attr);
 
 // удалить бинарный семафор
 fos_ret_t SYS_FOS_DeleteSemBinary(user_desc_t semb);
@@ -67,17 +67,20 @@ fos_ret_t SYS_File_Unmount(uint8_t dev_num);
 // взять счётный семафор
 fos_ret_t SYS_FOS_SemCntTake(user_desc_t semc, uint32_t timeout_ms);
 
+// дать счётный семафор в блокирующем режиме
+fos_ret_t SYS_FOS_SemCntBlockingModeGive(user_desc_t semc, uint32_t timeout_ms);
+
 // дать счётный семафор
 fos_ret_t SYS_FOS_SemCntGive(user_desc_t semc);
 
 // создать счётный семафор
-user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt);
+user_desc_t SYS_FOS_CreateSemCnt(uint32_t max_cnt, uint32_t init_cnt, fos_sem_attr_t* attr);
 
 // удалить счётный семафор
 fos_ret_t SYS_FOS_DeleteSemCnt(user_desc_t semc);
 
 // create queue32
-user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_mode_t mode);
+user_desc_t SYS_FOS_CreateQueue32(uint16_t size, fos_queue_attr_t *attr);
 
 // delete queue32
 fos_ret_t SYS_FOS_DeleteQueue32(user_desc_t que);
@@ -91,6 +94,13 @@ fos_ret_t SYS_FOS_Queue32ReadData(user_desc_t que, uint32_t* data_ptr);
 
 // write data to queue32
 fos_ret_t SYS_FOS_Queue32WriteData(user_desc_t que, uint32_t data);
+
+// ask space from queue32
+fos_ret_t SYS_FOS_Queue32AskSpace(user_desc_t que, uint32_t timeout_ms);
+
+// write data to queue32
+// do call after SYS_FOS_Queue32AskSpace
+fos_ret_t SYS_FOS_Queue32WriteDataBM(user_desc_t que, uint32_t data);
 
 // is the thhread alive
 fos_ret_t SYS_FOS_IsThreadAlive(user_desc_t desc);
@@ -136,7 +146,7 @@ user_thread_ep_wa_t SYS_FOS_GetThreadEpA();
 user_desc_t SYS_FOS_GetCurrentThreadUd();
 
 // create the mutex
-user_desc_t SYS_FOS_CreateMutex(fos_mutex_type_t type, uint8_t pcp_priority);
+user_desc_t SYS_FOS_CreateMutex(fos_mutex_attr_t* attr);
 
 // delete the mutex
 fos_ret_t SYS_FOS_DeleteMutex(user_desc_t mutex);
@@ -170,6 +180,15 @@ fos_ret_t SYS_FOS_Wait(uint32_t time);
 
 // залогировать событие
 fos_ret_t SYS_FOS_LogData(char *str, fos_log_type_t type);
+
+// get thread priority
+uint8_t SYS_FOS_GetThreadPriority(user_desc_t ud);
+
+// set thread priority
+fos_ret_t SYS_FOS_SetThreadPriority(user_desc_t ud, uint8_t priority);
+
+// reset thread priority
+fos_ret_t SYS_FOS_ResetThreadPriority(user_desc_t ud);
 
 
 

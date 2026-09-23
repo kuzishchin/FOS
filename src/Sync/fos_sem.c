@@ -1,8 +1,8 @@
 /**************************************************************************//**
  * @file      fos_sem.c
  * @brief     Counting named strong semaphore. Source file.
- * @version   V1.2.04
- * @date      18.05.2026
+ * @version   V1.3.02
+ * @date      20.07.2026
  ******************************************************************************/
 /*
 * Copyright 2024 Yury A. Kuzishchin and Vitaly A. Kostarev. All rights reserved.
@@ -28,7 +28,7 @@
 
 
 // инициализация
-void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t init_cnt)
+void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t init_cnt, char* name_ptr)
 {
 	if(p == NULL)
 		return;
@@ -39,6 +39,8 @@ void FOS_SemaphoreCnt_Init(fos_semaphore_cnt_t *p, uint32_t max_cnt, uint32_t in
 	memset(p, 0, sizeof(fos_semaphore_cnt_t));
 	p->max_cnt = max_cnt;
 	p->cnt = init_cnt;
+	if(name_ptr)
+		strncpy(p->name, name_ptr, FOS_SEM_NAME_LEN - 1);
 	FOS_Lock_Init(&p->fos_lock);
 }
 
@@ -72,16 +74,70 @@ fos_ret_t FOS_SemaphoreCnt_Take(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t
 
 	if(p->cnt)          // если счётчик не пуст
 	{
-		p->cnt--;                                    // декремент
+		if(p->cnt >= p->max_cnt)                                // разблокировка потоков заблокированных через FOS_SemaphoreCnt_GiveWithBlock
+		{
+			if(FOS_Lock_GetLockedThreadsCount(&p->fos_lock))    // если есть заблокированные потоки
+				FOS_Lock_Give(&p->fos_lock);                    // разблокируем
+			else
+				p->cnt--;                                       // декремент
+		}else
+			p->cnt--;                                           // декремент
+
 		*lock_flag = FOS__DISABLE;                   // говорим что попытки блокировки не было
 	}else               // если счётчик пуст
 	{
 		if(thr_id != FOS_SPECIAL_ID)
 		{
-			*lock_flag = FOS__ENABLE;                    // говорим что поытки блокировки была
+			*lock_flag = FOS__ENABLE;                    // говорим что попытка блокировки была
 			ret = FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);    // блокируем поток его берущий
 		}else
 			*lock_flag = FOS__DISABLE;                   // говорим что попытки блокировки не было
+	}
+
+	LEAVE_CRITICAL(s);
+
+	return ret;
+}
+
+
+// дать с блокировкой
+// поток с FOS_SPECIAL_ID увеличивает счётчик но не блоирует
+fos_ret_t FOS_SemaphoreCnt_GiveWithBlock(fos_semaphore_cnt_t *p, uint8_t thr_id, uint32_t timeout_ms, fos_sw_t *lock_flag)
+{
+	if((p == NULL) || (lock_flag == NULL))
+		return FOS__FAIL;
+
+	if((thr_id >= FOS_MAX_THR_CNT) && (thr_id != FOS_SPECIAL_ID))
+		return FOS__FAIL;
+
+	fos_ret_t ret = FOS__OK;
+	uint32_t s;
+	ENTER_CRITICAL(s);
+
+	if(p->cnt)                                              // если счётчик не пуст
+	{
+		if(p->cnt >= p->max_cnt)                            // если достигли предела счёта
+		{
+			if(thr_id != FOS_SPECIAL_ID)
+			{
+				*lock_flag = FOS__ENABLE;                   // говорим что попытка блокировки была
+				ret = FOS_Lock_Take(&p->fos_lock, thr_id, timeout_ms);    // блокируем поток его дающий (берём блокиратор)
+			}else
+				*lock_flag = FOS__DISABLE;                  // говорим что попытки блокировки не было
+
+		}else                                               // если не достигли предела счёта
+		{
+			p->cnt++;                                       // инкремент
+			*lock_flag = FOS__DISABLE;                      // говорим что попытки блокировки не было
+		}
+
+	}else
+	{
+		if(FOS_Lock_GetLockedThreadsCount(&p->fos_lock))    // если есть заблокированные потоки
+			ret = FOS_Lock_Give(&p->fos_lock);              // разблокируем очередной поток и выходим
+		else
+			p->cnt = 1;                                     // если заблокированных полтокв нет, ставим счётчик в 1
+		*lock_flag = FOS__DISABLE;                          // говорим что попытки блокировки не было
 	}
 
 	LEAVE_CRITICAL(s);
@@ -112,7 +168,10 @@ fos_ret_t FOS_SemaphoreCnt_Give(fos_semaphore_cnt_t *p)
 	}
 
 	if(p->cnt > p->max_cnt)                                 // ограничиваем счёт
+	{
 		p->cnt = p->max_cnt;
+		ret = FOS__ERR_RESOURCE;
+	}
 
 	LEAVE_CRITICAL(s);
 
